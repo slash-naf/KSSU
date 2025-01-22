@@ -67,8 +67,9 @@
 			pattern = charsToPattern(pattern);
 			let rslt = Corkboard.search(pattern);
 			Corkboard.output.textContent = rslt.map(n =>{
-				n += pattern.length * 2 - 2;
-				return '#'+ n +': '+ rngAt(n);
+				let first = n - 2;
+				let last = first + pattern.length * 2;
+				return first +': '+ rngAt(first) +' .. #'+ last +': '+ rngAt(last);
 			}).join(', ');
 		} 
 		document.querySelectorAll('#corkboard .input button').forEach(el =>{
