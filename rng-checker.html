@@ -35,6 +35,8 @@
 
 		import {Corkboard, HeavyLobster, Star, rngAt, randiAt} from './rng.mjs';
 
+		const toHex = (num, len=8)=> (num >>> 0).toString(16).padStart(len, "0").toUpperCase();
+
 		const numToChar = n => n < 0 ? '?' : n.toString(36);
 		const charsToPattern = s => s.split('').map(c =>{
 			let n = parseInt(c, 36);
@@ -69,7 +71,7 @@
 			Corkboard.output.textContent = rslt.map(n =>{
 				let first = n - 2;
 				let last = first + pattern.length * 2;
-				return first +': '+ rngAt(first) +' .. #'+ last +': '+ rngAt(last);
+				return '['+ first +']=#'+ rngAt(first) +'(0x'+ toHex(rngAt(first), 3) +') .. ['+ last +']=#'+ rngAt(last) +'(0x'+ toHex(rngAt(last), 3) +')';
 			}).join(', ');
 		} 
 		document.querySelectorAll('#corkboard .input button').forEach(el =>{
