@@ -73,11 +73,11 @@
 			let rslt = Corkboard.search(pattern);
 
 			//出力
-			Corkboard.output.textContent = rslt.map(n =>{
+			Corkboard.output.textContent = ["count="+ rslt.length, ...rslt.map(n =>{
 				let first = n - 2;
 				let last = first + pattern.length * 2;
-				return '['+ first +']='+ rngAt(first) +'=0x'+ toHex(rngAt(first), 3) +' .. ['+ last +']='+ rngAt(last) +'=0x'+ toHex(rngAt(last), 3);
-			}).join(', ');
+				return '['+ first +']='+ rngAt(first) +'=0x'+ toHex(rngAt(first), 3) +'...['+ last +']='+ rngAt(last) +'=0x'+ toHex(rngAt(last), 3);
+			})].join(', ');
 		} 
 		document.querySelectorAll('#corkboard .input button').forEach(el =>{
 			const c = numToChar(Corkboard.names.indexOf(el.textContent));
