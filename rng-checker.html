@@ -118,8 +118,10 @@
 			HeavyLobster.postWalkAdvanceMax = Number(nodes.postWalkAdvanceMax.value);
 
 			//数字を矢印に
+			let sav = HeavyLobster.input.selectionStart
 			let pattern = numpadToArrow(HeavyLobster.input.value);
 			HeavyLobster.input.value = pattern;
+			HeavyLobster.input.setSelectionRange(sav, sav);
 
 			//5文字未満なら結果を非表示にして終わり
 			if(pattern.length < 5){
