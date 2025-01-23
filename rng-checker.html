@@ -61,17 +61,22 @@
 		Corkboard.input = document.querySelector('#corkboard .input input');
 		Corkboard.output = document.querySelector('#corkboard .output');
 		Corkboard.input.oninput = _=>{
-			let pattern = Corkboard.input.value;
-			if(pattern.length < 8){
+			let pattern = charsToPattern(Corkboard.input.value);
+
+			//不明でない値が8個未満なら何も表示しない
+			if(pattern.reduce((sum, x)=> sum + (0 > x ? 0 : 1), 0) < 8){
 				Corkboard.output.textContent = '';
 				return;		
 			}
-			pattern = charsToPattern(pattern);
+
+			//可能性のある乱数を検索
 			let rslt = Corkboard.search(pattern);
+
+			//出力
 			Corkboard.output.textContent = rslt.map(n =>{
 				let first = n - 2;
 				let last = first + pattern.length * 2;
-				return '['+ first +']=#'+ rngAt(first) +'(0x'+ toHex(rngAt(first), 3) +') .. ['+ last +']=#'+ rngAt(last) +'(0x'+ toHex(rngAt(last), 3) +')';
+				return '['+ first +']='+ rngAt(first) +'=0x'+ toHex(rngAt(first), 3) +' .. ['+ last +']='+ rngAt(last) +'=0x'+ toHex(rngAt(last), 3);
 			}).join(', ');
 		} 
 		document.querySelectorAll('#corkboard .input button').forEach(el =>{
