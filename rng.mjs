@@ -1,3 +1,5 @@
+const initialSeed = (minutes, seconds) => (minutes & 0xF) << 8 | seconds;
+
 //乱数サイクルを作成
 const rngCycle = Array.from(function*(){
 	let x = 0;
@@ -33,6 +35,10 @@ const Corkboard = {
 		}
 		return rslt;
 	}
+}
+
+const FattyWhale = {
+	rollsAt: i => 0b01001101 >> (rngAt(i - 3) & 4) + randiAt(i, 4) & 1,
 }
 
 //ヘビーロブスター戦で星の向きから乱数を予測し、乱数をいくつ手動で進めれば目的の乱数を引けるか計算
@@ -188,4 +194,4 @@ const HeavyLobster = {
 	}
 }
 
-export {Star, Corkboard, HeavyLobster, rngAt, randi, randiAt};
+export {Star, Corkboard, HeavyLobster, FattyWhale, initialSeed, rngAt, randi, randiAt};
