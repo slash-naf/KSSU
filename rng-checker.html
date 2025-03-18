@@ -18,7 +18,7 @@
 	</ul></li>
 	<li id="heavy-lobster">ヘビーロブスターの乱数調整<ul>
 		<li class="input">
-			<input type="search">
+			<input type="search"><button>+</button><button>-</button>
 			<table>
 				<tr><td><button>↖</button><td><button>↑</button><td><button>↗</button>
 				<tr><td><button>←</button><td><button>?</button><td><button>→</button>
@@ -123,6 +123,22 @@
 			HeavyLobster.input.value = pattern;
 			HeavyLobster.input.setSelectionRange(sav, sav);
 
+			//矢印を数値に
+			let additions = [0];
+			pattern = pattern.split('').flatMap(x =>{
+				switch(x){
+				case '+':
+					additions[additions.length-1]++;
+					return [];
+				case '-':
+					additions[additions.length-1]--;
+					return [];
+				default:
+					additions.push(0);
+					return [Star.names.indexOf(x)];
+				}
+			});
+
 			//5文字未満なら結果を非表示にして終わり
 			if(pattern.length < 5){
 				nodes.preFightAdvance.textContent = '';
@@ -134,11 +150,8 @@
 				return;
 			}
 
-			//矢印を数値に
-			pattern = pattern.split('').map(x => Star.names.indexOf(x));
-
 			//乱数をいくつ進めるか計算
-			let search = HeavyLobster.search(pattern);
+			let search = HeavyLobster.search(pattern, additions);
 			let calc = HeavyLobster.calc(search);
 
 			//出力

@@ -26,9 +26,9 @@ const Corkboard = {
 	at: i => randiAt(i, 2),
 	search(pattern){
 		let rslt = [];
-		for(let ofs=0; ofs < 0x1000; ofs ++){
-			if(pattern.every((x, i)=> 0 > x || this.at(ofs + i * 2) == x)){
-				rslt.push(ofs);
+		for(let advances=0; advances < 0x1000; advances ++){
+			if(pattern.every((x, i)=> 0 > x || this.at(advances + i * 2) == x)){
+				rslt.push(advances);
 			}
 		}
 		return rslt;
@@ -47,8 +47,8 @@ const HeavyLobster = {
 	isJump: i => !(rngAt(i) >> 10),
 
 	//星の向きから乱数を推測
-	search(pattern){
-		let ofs = 0;
+	search(pattern, additions = []){
+		let advances = 0;
 
 		let map = new Map();
 		const add = (i, n)=>{
@@ -56,35 +56,40 @@ const HeavyLobster = {
 			map.set(i, (d ?? 0) + n);
 		}
 
-		const match = (i, n)=> pattern[i] < 0 || pattern[i] == Star.at(ofs + n);
+		let addition = 0;
+		const offsets = [0, 64, 127, 160, 179, 555, 584, 598].map((v,i)=>{
+			addition += additions[i] ?? 0;
+			return v + addition;
+		});
+		const match = (i,n)=> pattern[i] < 0 || pattern[i] == Star.at(advances + offsets[i] + n);
 
-		for(; ofs < 0x1000; ofs++){
-			if(match(0,0) && match(3, 160)){
-				let b = match(1, 66);
-				if(match(2, 127) && match(4, 179)){
-					if(match(1, 64)){
-						add(ofs, 1);
+		for(; advances < 0x1000; advances++){
+			if(match(0,0) && match(3,0)){
+				let b = match(1,2);
+				if(match(2,0) && match(4,0)){
+					if(match(1,0)){
+						add(advances, 1);
 					}
 					if(b){
-						add(ofs, 2);
+						add(advances, 2);
 					}
 				}
-				if(b && match(2, 129) && match(4, 181)){
-					add(ofs+2 & 0xFFF, 2);
-					add(ofs | 0x2000, 2);
-					add(ofs, 1);
+				if(b && match(2,2) && match(4,2)){
+					add(advances+2 & 0xFFF, 2);
+					add(advances | 0x2000, 2);
+					add(advances, 1);
 				}
 			}
 		}
 
 		let rslt = [];
 		rslt.cntSum = 0;
-		for(const [ofs, cnt] of map.entries()){
-			let n = ofs >> 12;
+		for(const [advances, cnt] of map.entries()){
+			let n = advances >> 12;
 			rslt.push({
-				dashWalkIdx: (ofs + 555 + n) & 0xFFF,
-				postDashIdx: (ofs + 584) & 0xFFF,
-				postWalkIdx: (ofs + 598 + n) & 0xFFF,
+				dashWalkIdx: (advances + offsets[5] + n) & 0xFFF,
+				postDashIdx: (advances + offsets[6]) & 0xFFF,
+				postWalkIdx: (advances + offsets[7] + n) & 0xFFF,
 				cnt: cnt
 			});
 			rslt.cntSum += cnt;
