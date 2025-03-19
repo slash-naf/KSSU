@@ -16,6 +16,22 @@ const rngAt = i => rngCycle[i & 0xFFF];
 const randi = (seed, max) => seed * max >> 12;
 const randiAt = (i, max) => rngCycle[i & 0xFFF] * max >> 12;
 
+//値から位置を取得
+function rngIdxOf(s){
+	let r = 0, a = 61, b = 1401, k = 1;
+	while(k < 0x1000){
+		if(s & 1){
+			s = a * s + b;
+			r -= k;
+		}
+		b = (a + 1) * b >>> 1;
+		a = a * a & 0xFFF;
+		s >>>= 1;
+		k <<= 1;
+	}
+	return r & 0xFFF;
+}
+
 //星の向きの乱数
 const Star = {
 	names: ['↑', '↗', '→', '↘', '↓', '↙', '←', '↖'],
@@ -194,4 +210,4 @@ const HeavyLobster = {
 	}
 }
 
-export {Star, Corkboard, HeavyLobster, FattyWhale, initialSeed, rngAt, randi, randiAt};
+export {Star, Corkboard, HeavyLobster, FattyWhale, initialSeed, rngAt, randi, randiAt, rngIdxOf};
