@@ -12,13 +12,11 @@
 			enemies: ['カッター', 'ビーム', 'ヨーヨー', 'ニンジャ', 'ウィング', 'ファイター', 'ジェット', 'ソード', 'ファイア', 'ストーン', 'ボム', 'プラズマ', 'ホイール', 'アイス', 'ミラー', 'コピー', 'スープレックス', 'ハンマー', 'パラソル', 'マイク', 'スリープ', 'ペイント', 'コック', 'クラッシュ'],
 			abilities: ['ヨーヨー', 'ニンジャ', 'ソード', 'ウィング', 'ホイール', 'ジェット', 'いてっ！', 'ビーム', 'スープレックス', 'スリープ', 'クラッシュ', 'ストーン', 'プラズマ', 'パラソル', 'アイス', 'ミラー', 'ハンマー', 'コック', 'ファイター', 'コピー', 'むてきキャンディ', 'ボム', 'ファイア', 'カッター', 'マイク'],
 			calc(enemy1, enemy2){
-				let start = enemy1 + enemy2;
-				let end = start + (start + 1) % 25 + 76;
-				let roulette = [];
-				for(let i = start; i <= end; i++){
-					roulette.push(this.abilities[i % 25]);
-				}
-				return {start, end, roulette};
+				let n = enemy1 + enemy2;
+				let start = n % 25;
+				let end = 2 * (n + 1) % 25;
+				let len = (n + 1) % 25 + 77;
+				return {start, end, len};
 			}
 		}
 
@@ -38,10 +36,10 @@
 		enemy1.onchange = _=>{
 			let mix = Mix.calc(enemy1.selectedIndex, enemy2.selectedIndex)
 			for(let i=0; i < 25; i++){
-				roulette.children[i].innerText = mix.roulette[i];
+				roulette.children[i].innerText = Mix.abilities[(i + mix.start) % 25];
 			}
-			roulette.lastChild.innerText = mix.roulette.at(-1);
-			roulette.lastChild.value = mix.roulette.length;
+			roulette.lastChild.innerText = Mix.abilities[mix.end];
+			roulette.lastChild.value = mix.len;
 		}
 		const enemy2 = enemy1.cloneNode(true);
 		enemy2.onchange = enemy1.onchange;
