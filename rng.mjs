@@ -1,3 +1,4 @@
+//ソフトリセットした時刻から初期シードを計算
 const initialSeed = (minutes, seconds) => (minutes & 0xF) << 8 | seconds;
 
 //乱数サイクルを作成
@@ -44,7 +45,7 @@ const Corkboard = {
 	at: i => randiAt(i, 2),
 	search(pattern){
 		let rslt = [];
-		for(let advances=0; advances < 0x1000; advances ++){
+		for(let advances=0; advances < 0x1000; advances++){
 			if(pattern.every((x, i)=> 0 > x || this.at(advances + i * 2) == x)){
 				rslt.push(advances);
 			}
