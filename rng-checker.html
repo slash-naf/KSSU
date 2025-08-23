@@ -42,19 +42,10 @@
 			let n = parseInt(c, 36);
 			return isNaN(n) ? -1 : n;
 		});
-		const numpadToArrow = s => s.replace(/[1-9]/g, m =>{
-			const arrowMap = {
-				8: "↑",
-				9: "↗",
-				6: "→",
-				3: "↘",
-				2: "↓",
-				1: "↙",
-				4: "←",
-				7: "↖",
-				5: "?"
-			};
-			return arrowMap[m];
+		const charsToArrow = s => s.replace(/[^↑↗→↘↓↙←↖]/g, m =>{
+			const nums = "89632147wedcxzaqWEDCXZAQ";
+			const idx = nums.indexOf(m);
+			return idx < 0 ? '?' : Star.names[idx % 8];
 		});
 		const changeInputText = (input, s)=>{
 			let sav = input.selectionStart;
@@ -68,8 +59,8 @@
 		Corkboard.input.oninput = _=>{
 			let pattern = Corkboard.input.value.replace(/[^01]/g, '?');
 			changeInputText(Corkboard.input, pattern)
-
 			pattern = charsToPattern(Corkboard.input.value);
+
 			//不明でない値が8個未満なら何も表示しない
 			if(pattern.reduce((sum, x)=> sum + (0 > x ? 0 : 1), 0) < 8){
 				Corkboard.output.textContent = '';
@@ -125,7 +116,7 @@
 			HeavyLobster.postWalkAdvanceMax = Number(nodes.postWalkAdvanceMax.value);
 
 			//数字を矢印に
-			let pattern = numpadToArrow(HeavyLobster.input.value);
+			let pattern = charsToArrow(HeavyLobster.input.value);
 			changeInputText(HeavyLobster.input, pattern)
 
 			//矢印を数値に
