@@ -2,13 +2,10 @@
 const initialSeed = (minutes, seconds) => (minutes & 0xF) << 8 | seconds;
 
 //乱数サイクルを作成
-const rngCycle = Array.from(function*(){
-	let x = 0;
-	do{
-		yield x;
-		x = (x * 61 + 1401) & 0xFFF;	//乱数更新式
-	}while(x !== 0);
-}());
+const rngCycle = new Int16Array(0x1000);
+for(let i=1; i < 0x1000; i++){
+	rngCycle[i] = rngCycle[i-1] * 61 + 1401 & 0xFFF;
+}
 
 //指定した位置の乱数取得
 const rngAt = i => rngCycle[i & 0xFFF];
