@@ -56,13 +56,20 @@
 			};
 			return arrowMap[m];
 		});
+		const changeInputText = (input, s)=>{
+			let sav = input.selectionStart;
+			input.value = s;
+			input.setSelectionRange(sav, sav);
+		}
 
 
 		Corkboard.input = document.querySelector('#corkboard .input input');
 		Corkboard.output = document.querySelector('#corkboard .output');
 		Corkboard.input.oninput = _=>{
-			let pattern = charsToPattern(Corkboard.input.value);
+			let pattern = Corkboard.input.value.replace(/[^01]/g, '?');
+			changeInputText(Corkboard.input, pattern)
 
+			pattern = charsToPattern(Corkboard.input.value);
 			//不明でない値が8個未満なら何も表示しない
 			if(pattern.reduce((sum, x)=> sum + (0 > x ? 0 : 1), 0) < 8){
 				Corkboard.output.textContent = '';
@@ -76,7 +83,7 @@
 			Corkboard.output.textContent = ["count="+ rslt.length, ...rslt.map(n =>{
 				let first = n - 2;
 				let last = first + pattern.length * 2;
-				return '['+ first +']='+ rngAt(first) +'=0x'+ toHex(rngAt(first), 3) +'...['+ last +']='+ rngAt(last) +'=0x'+ toHex(rngAt(last), 3);
+				return '['+ first +']='+ rngAt(first)+'..['+ last +']='+ rngAt(last);
 			})].join(', ');
 		} 
 		document.querySelectorAll('#corkboard .input button').forEach(el =>{
@@ -118,10 +125,8 @@
 			HeavyLobster.postWalkAdvanceMax = Number(nodes.postWalkAdvanceMax.value);
 
 			//数字を矢印に
-			let sav = HeavyLobster.input.selectionStart
 			let pattern = numpadToArrow(HeavyLobster.input.value);
-			HeavyLobster.input.value = pattern;
-			HeavyLobster.input.setSelectionRange(sav, sav);
+			changeInputText(HeavyLobster.input, pattern)
 
 			//矢印を数値に
 			let additions = [0];
