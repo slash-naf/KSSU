@@ -1,18 +1,16 @@
 //ソフトリセットした時刻から初期シードを計算
 const initialSeed = (minutes, seconds) => (minutes & 0xF) << 8 | seconds;
 
-//乱数サイクルを作成
-const rngCycle = new Int16Array(0x1000);
-for(let i=1; i < 0x1000; i++){
-	rngCycle[i] = rngCycle[i-1] * 61 + 1401 & 0xFFF;
+//乱数生成器
+const CYCLE_LEN = 0x1000;	//周期は2の12乗
+const SEED_MASK = 0xFFF;
+const rngCycle = new Uint16Array(CYCLE_LEN);
+for(let i=0, x=0; i < CYCLE_LEN; i++, x = x * 61 + 1401 & SEED_MASK){	//乱数は線形合同法で、生成式は X[n+1] = (61 × X[n] + 1401) mod 2^12
+	rngCycle[i] = x;
 }
-
-//指定した位置の乱数取得
-const rngAt = i => rngCycle[i & 0xFFF];
-
-//乱数値から任意の範囲の乱数を生成
-const randi = (seed, max) => seed * max >> 12;
-const randiAt = (i, max) => rngCycle[i & 0xFFF] * max >> 12;
+const rngAt = i => rngCycle[i & SEED_MASK];	//指定した位置の乱数値を取得
+const randi = (seed, max) => seed * max >> 12;	//乱数値を基に、指定した最大値未満の整数を取得
+const randiAt = (i, max) => randi(rngAt(i), max);	//指定した位置の乱数値を基に、指定した最大値未満の整数を取得
 
 //値から位置を取得
 function rngIdxOf(s){
@@ -40,11 +38,16 @@ const Star = {
 const Corkboard = {
 	names: ['裏コルクボード', 'コルクボード'],
 	at: i => randiAt(i, 2),
+	/**
+	 * コルクボードの曲のパターンに対応する乱数を検索
+	 * @param {Array} pattern 1:裏コルクボード、0:コルクボード、-1:ワイルドカード
+	 * @returns {Array} 乱数の位置の配列
+	 */
 	search(pattern){
-		let rslt = [];
-		for(let advances=0; advances < 0x1000; advances++){
-			if(pattern.every((x, i)=> 0 > x || this.at(advances + i * 2) == x)){
-				rslt.push(advances);
+		const rslt = [];
+		for(let i=0; i < CYCLE_LEN; i++){
+			if(pattern.every((x, advances)=> -1 === x || this.at(i + advances * 2) === x)){	//タイトル画面とコルクボードの往復で乱数が2進む
+				rslt.push(i);
 			}
 		}
 		return rslt;
