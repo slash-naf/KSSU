@@ -213,7 +213,8 @@ const HeavyLobster = {
 
 //格闘王への道
 const Arena = {
-	normal_arena_bosses: [
+	//通常の格闘王への道の並び順
+	arenaBosses: [
 		"ワドルディ",
 		"中ボス2",
 		"中ボス1",
@@ -234,7 +235,7 @@ const Arena = {
 		"ウィスピーウッズ",
 		"マルク",
 	],
-	bossOrder(idx, timer) {
+	arenaBossOrder(idx, timer) {
 		//初期化 (0..17 の値を回転させて埋める)
 		const bossOrder = new Uint8Array(19);
 		let offset = timer & 0xF;	//乱数タイマーから開始オフセットを決定 (0-15)
@@ -248,8 +249,47 @@ const Arena = {
 		}
 		bossOrder[18] = 18;
 
-		//シャッフル (0..17 の範囲のみ)
-		//各要素について、0..limit-1 のランダムな位置と交換
+		//マルク以外のシャッフル
+		//各要素について、0..17 のランダムな位置と交換
+		for (let i = 0; i < limit; i++) {
+			const r = randiAt(idx++, limit);
+			[bossOrder[i], bossOrder[r]] = [bossOrder[r], bossOrder[i]];
+		}
+
+		return bossOrder;
+	},
+	//真・格闘王への道の並び順
+	trueArenaBosses: [
+		"中ボス",
+		"カブーラー",
+		"クラッコJr.リベンジ",
+		"クラッコリベンジ",
+		"ロロロ&ラララリベンジ",
+		"ウイスピーウッズリベンジ",
+		"マスクドデデデ",
+		"ワムバムジュエル",
+		"ギャラクティックナイト",
+		"マルクソウル",
+	],
+	trueArenaBossOrder(idx, timer) {
+		//初期化 (0..5 の値を回転させて埋める)
+		const bossOrder = new Uint8Array(10);
+		let offset = timer & 0x3;	//乱数タイマーから開始オフセットを決定 (0-3)
+		const limit = 6;	//四天王は固定
+		for (let i = 0; i < limit; i++) {
+			if (offset >= limit) {
+				offset = 0;
+			}
+			bossOrder[i] = offset;
+			offset++;
+		}
+		bossOrder[6] = 6;
+		bossOrder[7] = 7;
+		bossOrder[8] = 8;
+		bossOrder[9] = 9;
+
+		//前半6ボスのシャッフル
+		//各要素について、0..5 のランダムな位置と交換
 		for (let i = 0; i < limit; i++) {
 			const r = randiAt(idx++, limit);
 			[bossOrder[i], bossOrder[r]] = [bossOrder[r], bossOrder[i]];
