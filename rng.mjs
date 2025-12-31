@@ -5,7 +5,7 @@ const initialSeed = (minutes, seconds) => (minutes & 0xF) << 8 | seconds;
 const CYCLE_LEN = 0x1000;	//周期は2の12乗
 const SEED_MASK = 0xFFF;
 const rngCycle = new Uint16Array(CYCLE_LEN);
-for(let i=0, x=0; i < CYCLE_LEN; i++, x = x * 61 + 1401 & SEED_MASK){	//乱数は線形合同法で、生成式は X[n+1] = (61 × X[n] + 1401) mod 2^12
+for (let i = 0, x = 0; i < CYCLE_LEN; i++, x = x * 61 + 1401 & SEED_MASK) {	//乱数は線形合同法で、生成式は X[n+1] = (61 × X[n] + 1401) mod 2^12
 	rngCycle[i] = x;
 }
 const rngAt = i => rngCycle[i & SEED_MASK];	//指定した位置の乱数値を取得
@@ -13,10 +13,10 @@ const randi = (seed, max) => seed * max >> 12;	//乱数値を基に、指定し�
 const randiAt = (i, max) => randi(rngAt(i), max);	//指定した位置の乱数値を基に、指定した最大値未満の整数を取得
 
 //値から位置を取得
-function rngIdxOf(s){
+function rngIdxOf(s) {
 	let r = 0, a = 61, b = 1401, k = 1;
-	while(k < 0x1000){
-		if(s & 1){
+	while (k < 0x1000) {
+		if (s & 1) {
 			s = a * s + b;
 			r -= k;
 		}
@@ -43,10 +43,10 @@ const Corkboard = {
 	 * @param {Array} pattern 1:裏コルクボード、0:コルクボード、-1:ワイルドカード
 	 * @returns {Array} 乱数の位置の配列
 	 */
-	search(pattern){
+	search(pattern) {
 		const rslt = [];
-		for(let i=0; i < CYCLE_LEN; i++){
-			if(pattern.every((x, advances)=> -1 === x || this.at(i + advances * 2) === x)){	//タイトル画面とコルクボードの往復で乱数が2進む
+		for (let i = 0; i < CYCLE_LEN; i++) {
+			if (pattern.every((x, advances) => -1 === x || this.at(i + advances * 2) === x)) {	//タイトル画面とコルクボードの往復で乱数が2進む
 				rslt.push(i);
 			}
 		}
@@ -70,35 +70,35 @@ const HeavyLobster = {
 	isJump: i => !(rngAt(i) >> 10),
 
 	//星の向きから乱数を推測
-	search(pattern, additions = []){
+	search(pattern, additions = []) {
 		let advances = 0;
 
 		let map = new Map();
-		const add = (i, n)=>{
+		const add = (i, n) => {
 			let d = map.get(i);
 			map.set(i, (d ?? 0) + n);
 		}
 
 		let addition = 0;
-		const offsets = [0, 64, 127, 160, 179, 555, 584, 598].map((v,i)=>{
+		const offsets = [0, 64, 127, 160, 179, 555, 584, 598].map((v, i) => {
 			addition += additions[i] ?? 0;
 			return v + addition;
 		});
-		const match = (i,n)=> pattern[i] < 0 || pattern[i] == Star.at(advances + offsets[i] + n);
+		const match = (i, n) => pattern[i] < 0 || pattern[i] == Star.at(advances + offsets[i] + n);
 
-		for(; advances < 0x1000; advances++){
-			if(match(0,0) && match(3,0)){
-				let b = match(1,2);
-				if(match(2,0) && match(4,0)){
-					if(match(1,0)){
+		for (; advances < 0x1000; advances++) {
+			if (match(0, 0) && match(3, 0)) {
+				let b = match(1, 2);
+				if (match(2, 0) && match(4, 0)) {
+					if (match(1, 0)) {
 						add(advances, 1);
 					}
-					if(b){
+					if (b) {
 						add(advances, 2);
 					}
 				}
-				if(b && match(2,2) && match(4,2)){
-					add(advances+2 & 0xFFF, 2);
+				if (b && match(2, 2) && match(4, 2)) {
+					add(advances + 2 & 0xFFF, 2);
 					add(advances | 0x2000, 2);
 					add(advances, 1);
 				}
@@ -107,7 +107,7 @@ const HeavyLobster = {
 
 		let rslt = [];
 		rslt.cntSum = 0;
-		for(const [advances, cnt] of map.entries()){
+		for (const [advances, cnt] of map.entries()) {
 			let n = advances >> 12;
 			rslt.push({
 				dashWalkIdx: (advances + offsets[5] + n) & 0xFFF,
@@ -121,36 +121,36 @@ const HeavyLobster = {
 		return rslt;
 	},
 	//乱数を進める最適な量を計算
-	calc(candidates){
+	calc(candidates) {
 		//飛ぶかの判定までにさらに進める乱数の最適な量を探す
-		const maxJumpCntFromPreFightAdvance = preFightAdvance =>{
+		const maxJumpCntFromPreFightAdvance = preFightAdvance => {
 			let rslt = {
 				dashJumpCnt: 0,
 				postDashAdvance: 0,
 				walkJumpCnt: 0,
 				postWalkAdvance: 0,
 			};
-			for(let i=0, leDash, leWalk; (leDash = i <= this.postDashAdvanceMax) | (leWalk = i <= this.postWalkAdvanceMax); i++){
+			for (let i = 0, leDash, leWalk; (leDash = i <= this.postDashAdvanceMax) | (leWalk = i <= this.postWalkAdvanceMax); i++) {
 				//走った場合と歩いた場合のジャンプする確率を調べる
 				let dashJumpCnt = 0;
 				let walkJumpCnt = 0;
-				for(let x of candidates){
-					if(this.isDash(x.dashWalkIdx + preFightAdvance)){	//走るなら
-						if(leDash && this.isJump(x.postDashIdx + preFightAdvance + i)){
+				for (let x of candidates) {
+					if (this.isDash(x.dashWalkIdx + preFightAdvance)) {	//走るなら
+						if (leDash && this.isJump(x.postDashIdx + preFightAdvance + i)) {
 							dashJumpCnt += x.cnt;
 						}
-					}else{	//歩くなら
-						if(leWalk && this.isJump(x.postWalkIdx + preFightAdvance + i)){
+					} else {	//歩くなら
+						if (leWalk && this.isJump(x.postWalkIdx + preFightAdvance + i)) {
 							walkJumpCnt += x.cnt;
 						}
 					}
 				}
 				//より高確率なら更新
-				if(dashJumpCnt > rslt.dashJumpCnt){
+				if (dashJumpCnt > rslt.dashJumpCnt) {
 					rslt.dashJumpCnt = dashJumpCnt;
 					rslt.postDashAdvance = i;
 				}
-				if(walkJumpCnt > rslt.walkJumpCnt){
+				if (walkJumpCnt > rslt.walkJumpCnt) {
 					rslt.walkJumpCnt = walkJumpCnt;
 					rslt.postWalkAdvance = i;
 				}
@@ -176,20 +176,20 @@ const HeavyLobster = {
 			walkGlideCnt: 0,
 			glideCnt: 0,
 		};
-		for(let preFightAdvance=0; preFightAdvance <= this.preFightAdvanceMax; preFightAdvance++){
+		for (let preFightAdvance = 0; preFightAdvance <= this.preFightAdvanceMax; preFightAdvance++) {
 			let t = maxJumpCntFromPreFightAdvance(preFightAdvance);
 
 			//飛ぶ確率、走って飛ぶ確率、走ったら進める量の少なさ、歩いたら進める量の少なさ、走って滑走する確率の順の条件で更新
 			let jumpCnt = t.dashJumpCnt + t.walkJumpCnt;
-			let dashCnt = candidates.reduce((prev, x)=> this.isDash(x.dashWalkIdx + preFightAdvance) ? prev + x.cnt : prev, 0);
+			let dashCnt = candidates.reduce((prev, x) => this.isDash(x.dashWalkIdx + preFightAdvance) ? prev + x.cnt : prev, 0);
 			let dashGlideCnt = dashCnt - t.dashJumpCnt;
-			if( 0 < (
+			if (0 < (
 				jumpCnt - rslt.jumpCnt ||
 				t.dashJumpCnt - rslt.dashJumpCnt ||
 				rslt.postDashAdvance - t.postDashAdvance ||
 				rslt.postWalkAdvance - t.postWalkAdvance ||
 				dashGlideCnt - rslt.dashGlideCnt
-			)){
+			)) {
 				rslt.preFightAdvance = preFightAdvance;
 				rslt.jumpCnt = jumpCnt;
 				rslt.dashCnt = dashCnt;
@@ -211,4 +211,52 @@ const HeavyLobster = {
 	}
 }
 
-export {Star, Corkboard, HeavyLobster, FattyWhale, initialSeed, rngAt, randi, randiAt, rngIdxOf};
+//格闘王への道
+const Arena = {
+	normal_arena_bosses: [
+		"ワドルディ",
+		"中ボス2",
+		"中ボス1",
+		"バトルウィンドウズ",
+		"2連主砲",
+		"魔人ワムバムロック",
+		"デデデ大王",
+		"ダイナブレイド",
+		"ファッティホエール",
+		"ガメレオアーム",
+		"ヘビーロブスター",
+		"クラッコ",
+		"ロロロ&ラララ",
+		"メタナイト",
+		"ギャラクティック・ノヴァ",
+		"リアクター",
+		"ツインウッズ",
+		"ウィスピーウッズ",
+		"マルク",
+	],
+	bossOrder(idx, timer) {
+		//初期化 (0..17 の値を回転させて埋める)
+		const bossOrder = new Uint8Array(19);
+		let offset = timer & 0xF;	//乱数タイマーから開始オフセットを決定 (0-15)
+		const limit = 18;	//マルクは固定
+		for (let i = 0; i < limit; i++) {
+			if (offset >= limit) {
+				offset = 0;
+			}
+			bossOrder[i] = offset;
+			offset++;
+		}
+		bossOrder[18] = 18;
+
+		//シャッフル (0..17 の範囲のみ)
+		//各要素について、0..limit-1 のランダムな位置と交換
+		for (let i = 0; i < limit; i++) {
+			const r = randiAt(idx++, limit);
+			[bossOrder[i], bossOrder[r]] = [bossOrder[r], bossOrder[i]];
+		}
+
+		return bossOrder;
+	}
+}
+
+export { Star, Corkboard, HeavyLobster, FattyWhale, Arena, initialSeed, rngAt, randi, randiAt, rngIdxOf };
