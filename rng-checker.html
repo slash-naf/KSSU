@@ -1,53 +1,85 @@
 <!DOCTYPE html>
 <html>
+
 <head>
 	<meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>乱数調整 - 星のカービィ ウルトラスーパーデラックス</title>
 	<link rel="stylesheet" href="style.css">
 </head>
+
 <body>
-	<ul><li id="corkboard">コルクボードの曲から乱数を特定する<ul>
-		<li class="input">
-			<button>コルクボード</button>
-			<button>裏コルクボード</button>
-			<button>?</button>
-			<input type="search">
+	<ul>
+		<li id="corkboard">コルクボードの曲から乱数を特定する<ul>
+				<li class="input">
+					<button>コルクボード</button>
+					<button>裏コルクボード</button>
+					<button>?</button>
+					<input type="search">
+				</li>
+				<li class="output"></li>
+			</ul>
 		</li>
-		<li class="output"></li>
-	</ul></li>
-	<li id="heavy-lobster">ヘビーロブスターの乱数調整<ul>
-		<li class="input">
-			<input type="search"><button>+</button><button>-</button>
-			<table>
-				<tr><td><button>↖</button><td><button>↑</button><td><button>↗</button>
-				<tr><td><button>←</button><td><button>?</button><td><button>→</button>
-				<tr><td><button>↙</button><td><button>↓</button><td><button>↘</button>
+		<li id="heavy-lobster">ヘビーロブスターの乱数調整<ul>
+				<li class="input">
+					<input type="search"><button>+</button><button>-</button>
+					<table>
+						<tr>
+							<td><button>↖</button>
+							<td><button>↑</button>
+							<td><button>↗</button>
+						<tr>
+							<td><button>←</button>
+							<td><button>?</button>
+							<td><button>→</button>
+						<tr>
+							<td><button>↙</button>
+							<td><button>↓</button>
+							<td><button>↘</button>
+					</table>
+				</li>
+			</ul>
+			<table class="spaced">
+				<tr>
+					<td>
+					<td>進める量
+					<td>飛ぶ確率
+					<td>進める上限
+				<tr class="preFight">
+					<th>戦うまでに
+					<td class="advance">
+					<td class="probability">
+					<td><input type="number">
+				<tr class="postDash">
+					<th>走ったら
+					<td class="advance">
+					<td class="probability">
+					<td><input type="number">
+				<tr class="postWalk">
+					<th>歩いたら
+					<td class="advance">
+					<td class="probability">
+					<td><input type="number">
 			</table>
 		</li>
-	</ul><table class="spaced">
-		<tr>                 <td>          <td>進める量        <td>飛ぶ確率            <td>進める上限
-		<tr class="preFight"><th>戦うまでに<td class="advance"><td class="probability"><td><input type="number">
-		<tr class="postDash"><th>走ったら  <td class="advance"><td class="probability"><td><input type="number">
-		<tr class="postWalk"><th>歩いたら  <td class="advance"><td class="probability"><td><input type="number">
-	</table></li></ul>
+	</ul>
 	<script type="module">
 
-		import {Corkboard, HeavyLobster, Star, rngAt, randiAt} from './rng.mjs';
+		import { Corkboard, HeavyLobster, Star, rngAt, randiAt } from './rng.mjs';
 
-		const toHex = (num, len=8)=> (num >>> 0).toString(16).padStart(len, "0").toUpperCase();
+		const toHex = (num, len = 8) => (num >>> 0).toString(16).padStart(len, "0").toUpperCase();
 
 		const numToChar = n => n < 0 ? '?' : n.toString(36);
-		const charsToPattern = s => s.split('').map(c =>{
+		const charsToPattern = s => s.split('').map(c => {
 			let n = parseInt(c, 36);
 			return isNaN(n) ? -1 : n;
 		});
-		const charsToArrow = s => s.replace(/[^↑↗→↘↓↙←↖]/g, m =>{
+		const charsToArrow = s => s.replace(/[^↑↗→↘↓↙←↖]/g, m => {
 			const nums = "89632147wedcxzaqWEDCXZAQ";
 			const idx = nums.indexOf(m);
 			return idx < 0 ? '?' : Star.names[idx % 8];
 		});
-		const changeInputText = (input, s)=>{
+		const changeInputText = (input, s) => {
 			let sav = input.selectionStart;
 			input.value = s;
 			input.setSelectionRange(sav, sav);
@@ -56,30 +88,30 @@
 
 		Corkboard.input = document.querySelector('#corkboard .input input');
 		Corkboard.output = document.querySelector('#corkboard .output');
-		Corkboard.input.oninput = _=>{
+		Corkboard.input.oninput = _ => {
 			let pattern = Corkboard.input.value.replace(/[^01]/g, '?');
 			changeInputText(Corkboard.input, pattern)
 			pattern = charsToPattern(Corkboard.input.value);
 
 			//不明でない値が8個未満なら何も表示しない
-			if(pattern.reduce((sum, x)=> sum + (0 > x ? 0 : 1), 0) < 8){
+			if (pattern.reduce((sum, x) => sum + (0 > x ? 0 : 1), 0) < 8) {
 				Corkboard.output.textContent = '';
-				return;		
+				return;
 			}
 
 			//可能性のある乱数を検索
 			let rslt = Corkboard.search(pattern);
 
 			//出力
-			Corkboard.output.textContent = ["count="+ rslt.length, ...rslt.map(n =>{
+			Corkboard.output.textContent = ["count=" + rslt.length, ...rslt.map(n => {
 				let first = n - 2;
 				let last = first + pattern.length * 2;
-				return '['+ first +']='+ rngAt(first)+'..['+ last +']='+ rngAt(last);
+				return '[' + first + ']=' + rngAt(first) + '..[' + last + ']=' + rngAt(last);
 			})].join(', ');
-		} 
-		document.querySelectorAll('#corkboard .input button').forEach(el =>{
+		}
+		document.querySelectorAll('#corkboard .input button').forEach(el => {
 			const c = numToChar(Corkboard.names.indexOf(el.textContent));
-			el.onclick = _=>{
+			el.onclick = _ => {
 				Corkboard.input.value += c;
 				Corkboard.input.oninput();
 			}
@@ -107,7 +139,7 @@
 		HeavyLobster.nodes.postDashAdvanceMax.value = HeavyLobster.postDashAdvanceMax;
 		HeavyLobster.nodes.postWalkAdvanceMax.value = HeavyLobster.postWalkAdvanceMax;
 
-		HeavyLobster.input.oninput = _=>{
+		HeavyLobster.input.oninput = _ => {
 			const nodes = HeavyLobster.nodes;
 
 			//乱数を進める上限を反映
@@ -121,22 +153,22 @@
 
 			//矢印を数値に
 			let additions = [0];
-			pattern = pattern.split('').flatMap(x =>{
-				switch(x){
-				case '+':
-					additions[additions.length-1]++;
-					return [];
-				case '-':
-					additions[additions.length-1]--;
-					return [];
-				default:
-					additions.push(0);
-					return [Star.names.indexOf(x)];
+			pattern = pattern.split('').flatMap(x => {
+				switch (x) {
+					case '+':
+						additions[additions.length - 1]++;
+						return [];
+					case '-':
+						additions[additions.length - 1]--;
+						return [];
+					default:
+						additions.push(0);
+						return [Star.names.indexOf(x)];
 				}
 			});
 
 			//5文字未満なら結果を非表示にして終わり
-			if(pattern.length < 5){
+			if (pattern.length < 5) {
 				nodes.preFightAdvance.textContent = '';
 				nodes.postDashAdvance.textContent = '';
 				nodes.postWalkAdvance.textContent = '';
@@ -151,21 +183,21 @@
 			let calc = HeavyLobster.calc(search);
 
 			//出力
-			nodes.preFightAdvance.textContent = calc.preFightAdvance;
-			nodes.postDashAdvance.textContent = calc.postDashAdvance;
-			nodes.postWalkAdvance.textContent = calc.postWalkAdvance;
-			nodes.preFightProbability.textContent =  calc.jumpCnt+'/'+calc.cnt;
-			nodes.postDashProbability.textContent = calc.dashJumpCnt+'/'+calc.dashCnt;
-			nodes.postWalkProbability.textContent = calc.walkJumpCnt+'/'+calc.walkCnt;
+			nodes.preFightAdvance.textContent = calc.advances;
+			nodes.postDashAdvance.textContent = calc.postDash.advances;
+			nodes.postWalkAdvance.textContent = calc.postWalk.advances;
+			nodes.preFightProbability.textContent = (calc.postDash.jumpChance + calc.postWalk.jumpChance) + '/' + (calc.postDash.jumpChance + calc.postWalk.jumpChance + calc.postDash.glideChance + calc.postWalk.glideChance);
+			nodes.postDashProbability.textContent = calc.postDash.jumpChance + '/' + (calc.postDash.jumpChance + calc.postDash.glideChance);
+			nodes.postWalkProbability.textContent = calc.postWalk.jumpChance + '/' + (calc.postWalk.jumpChance + calc.postWalk.glideChance);
 		}
-		document.querySelectorAll('#heavy-lobster .input button').forEach(el =>{
-			el.onclick = _=>{
+		document.querySelectorAll('#heavy-lobster .input button').forEach(el => {
+			el.onclick = _ => {
 				HeavyLobster.input.value += el.textContent;
 				HeavyLobster.input.oninput();
 			}
 		});
 
-		onbeforeunload = e =>{
+		onbeforeunload = e => {
 			//乱数を進める上限のセーブ
 			localStorage.setItem('HeavyLobster.preFightAdvanceMax', HeavyLobster.preFightAdvanceMax);
 			localStorage.setItem('HeavyLobster.postDashAdvanceMax', HeavyLobster.postDashAdvanceMax);
@@ -173,4 +205,5 @@
 		}
 	</script>
 </body>
+
 </html>
