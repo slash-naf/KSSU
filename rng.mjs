@@ -71,7 +71,7 @@ const HeavyLobster = {
 	 * @param {Array} additions 各タイミングでの乱数の想定とのズレの配列
 	 * @returns {Array} 乱数の位置と出現確率の配列 [{dashOrWalkIdx, afterDashIdx, afterWalkIdx, chance}]
 	 */
-	search(pattern, additions = [], start = 0, len = CYCLE_LEN) {
+	search(pattern, additions = [], { preFightAdvanceMax = 31, postDashAdvanceMax = 7, postWalkAdvanceMax = 11, } = {}, start = 0, len = CYCLE_LEN) {
 		//0～4:星の向き、5:走るか、6:走った後、7:歩いた後
 		/*
 			乱数タイマーごとの乱数位置のパターン
@@ -91,9 +91,9 @@ const HeavyLobster = {
 		});
 		console.log(offsets)
 		//乱数パターンごとに確率を記録
-		const list = [];
+		const candidates = [];
 		const push = (chance, a, n = 0) => {
-			list.push({
+			candidates.push({
 				dashOrWalkIdx: (start + a + offsets[5] + n) & SEED_MASK,
 				afterDashIdx: (start + a + offsets[6]) & SEED_MASK,
 				afterWalkIdx: (start + a + offsets[7] + n) & SEED_MASK,
@@ -120,27 +120,7 @@ const HeavyLobster = {
 			}
 		}
 
-		//集計
-		list.sort((a, b) => a.dashOrWalkIdx - b.dashOrWalkIdx || a.afterDashIdx - b.afterDashIdx || a.afterWalkIdx - b.afterWalkIdx);
-		const rslt = [];
-		for (const x of list) {
-			if (rslt.length > 0) {
-				const last = rslt[rslt.length - 1];
-				if (last.dashOrWalkIdx === x.dashOrWalkIdx && last.afterDashIdx === x.afterDashIdx && last.afterWalkIdx === x.afterWalkIdx) {
-					last.chance += x.chance;
-					continue;
-				}
-			}
-			rslt.push(x);
-		}
-		return list;
-	},
-	//乱数を進める最適な量を計算
-	calc(candidates, {
-		preFightAdvanceMax = 31,
-		postDashAdvanceMax = 7,
-		postWalkAdvanceMax = 11,
-	} = {}) {
+		//乱数を進める最適な量を探す
 		const preFight = {
 			advances: 0,
 			postDash: {

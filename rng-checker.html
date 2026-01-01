@@ -85,8 +85,6 @@
 			input.setSelectionRange(sav, sav);
 		}
 
-		// --- Modular Setup Functions ---
-
 		function setupCorkboard() {
 			const input = document.querySelector('#corkboard .input input');
 			const output = document.querySelector('#corkboard .output');
@@ -138,7 +136,6 @@
 				postWalkAdvanceMax: document.querySelector('#heavy-lobster .postWalk input'),
 			};
 
-			// Load settings
 			let preFightAdvanceMax = Number(localStorage.getItem('HeavyLobster.preFightAdvanceMax')) || 31;
 			let postDashAdvanceMax = Number(localStorage.getItem('HeavyLobster.postDashAdvanceMax')) || 7;
 			let postWalkAdvanceMax = Number(localStorage.getItem('HeavyLobster.postWalkAdvanceMax')) || 11;
@@ -148,7 +145,7 @@
 			nodes.postWalkAdvanceMax.value = postWalkAdvanceMax;
 
 			const update = () => {
-				// Update settings from inputs
+				// 進める上限
 				preFightAdvanceMax = Number(nodes.preFightAdvanceMax.value);
 				postDashAdvanceMax = Number(nodes.postDashAdvanceMax.value);
 				postWalkAdvanceMax = Number(nodes.postWalkAdvanceMax.value);
@@ -184,24 +181,20 @@
 					return;
 				}
 
-				console.log(pattern, additions)
-				//乱数をいくつ進めるか計算
-				let search = HeavyLobster.search(pattern, additions);
-
-				// Calculate with options
-				let calc = HeavyLobster.calc(search, {
+				// 乱数をいくつ進めるか計算
+				let result = HeavyLobster.search(pattern, additions, {
 					preFightAdvanceMax,
 					postDashAdvanceMax,
 					postWalkAdvanceMax
 				});
 
-				//出力
-				nodes.preFightAdvance.textContent = calc.advances;
-				nodes.postDashAdvance.textContent = calc.postDash.advances;
-				nodes.postWalkAdvance.textContent = calc.postWalk.advances;
-				nodes.preFightProbability.textContent = (calc.postDash.jumpChance + calc.postWalk.jumpChance) + '/' + (calc.postDash.jumpChance + calc.postWalk.jumpChance + calc.postDash.glideChance + calc.postWalk.glideChance);
-				nodes.postDashProbability.textContent = calc.postDash.jumpChance + '/' + (calc.postDash.jumpChance + calc.postDash.glideChance);
-				nodes.postWalkProbability.textContent = calc.postWalk.jumpChance + '/' + (calc.postWalk.jumpChance + calc.postWalk.glideChance);
+				// 結果を出力
+				nodes.preFightAdvance.textContent = result.advances;
+				nodes.postDashAdvance.textContent = result.postDash.advances;
+				nodes.postWalkAdvance.textContent = result.postWalk.advances;
+				nodes.preFightProbability.textContent = (result.postDash.jumpChance + result.postWalk.jumpChance) + '/' + (result.postDash.jumpChance + result.postWalk.jumpChance + result.postDash.glideChance + result.postWalk.glideChance);
+				nodes.postDashProbability.textContent = result.postDash.jumpChance + '/' + (result.postDash.jumpChance + result.postDash.glideChance);
+				nodes.postWalkProbability.textContent = result.postWalk.jumpChance + '/' + (result.postWalk.jumpChance + result.postWalk.glideChance);
 			};
 
 			input.oninput = update;
@@ -213,15 +206,19 @@
 				}
 			});
 
-			// Save on unload inside setup or globally if preferred, here inside setup captures the scoped vars
-			window.addEventListener('beforeunload', () => {
+			// 進める上限の保存
+			const save = () => {
 				localStorage.setItem('HeavyLobster.preFightAdvanceMax', preFightAdvanceMax);
 				localStorage.setItem('HeavyLobster.postDashAdvanceMax', postDashAdvanceMax);
 				localStorage.setItem('HeavyLobster.postWalkAdvanceMax', postWalkAdvanceMax);
-			});
+				update()
+			}
+			nodes.preFightAdvanceMax.oninput = save;
+			nodes.postDashAdvanceMax.oninput = save;
+			nodes.postWalkAdvanceMax.oninput = save;
 		}
 
-		// Initialize
+		// 初期化
 		setupCorkboard();
 		setupHeavyLobster();
 
