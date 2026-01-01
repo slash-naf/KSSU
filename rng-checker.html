@@ -74,7 +74,7 @@
 			let n = parseInt(c, 36);
 			return isNaN(n) ? -1 : n;
 		});
-		const charsToArrow = s => s.replace(/[^↑↗→↘↓↙←↖]/g, m => {
+		const charsToArrow = s => s.replace(/[^↑↗→↘↓↙←↖+-]/g, m => {
 			const nums = "89632147wedcxzaqWEDCXZAQ";
 			const idx = nums.indexOf(m);
 			return idx < 0 ? '?' : Star.names[idx % 8];
@@ -85,124 +85,146 @@
 			input.setSelectionRange(sav, sav);
 		}
 
+		// --- Modular Setup Functions ---
 
-		Corkboard.input = document.querySelector('#corkboard .input input');
-		Corkboard.output = document.querySelector('#corkboard .output');
-		Corkboard.input.oninput = _ => {
-			let pattern = Corkboard.input.value.replace(/[^01]/g, '?');
-			changeInputText(Corkboard.input, pattern)
-			pattern = charsToPattern(Corkboard.input.value);
+		function setupCorkboard() {
+			const input = document.querySelector('#corkboard .input input');
+			const output = document.querySelector('#corkboard .output');
 
-			//不明でない値が8個未満なら何も表示しない
-			if (pattern.reduce((sum, x) => sum + (0 > x ? 0 : 1), 0) < 8) {
-				Corkboard.output.textContent = '';
-				return;
-			}
+			const update = () => {
+				let pattern = input.value.replace(/[^01]/g, '?');
+				changeInputText(input, pattern)
+				pattern = charsToPattern(input.value);
 
-			//可能性のある乱数を検索
-			let rslt = Corkboard.search(pattern);
+				//不明でない値が8個未満なら何も表示しない
+				if (pattern.reduce((sum, x) => sum + (0 > x ? 0 : 1), 0) < 8) {
+					output.textContent = '';
+					return;
+				}
 
-			//出力
-			Corkboard.output.textContent = ["count=" + rslt.length, ...rslt.map(n => {
-				let first = n - 2;
-				let last = first + pattern.length * 2;
-				return '[' + first + ']=' + rngAt(first) + '..[' + last + ']=' + rngAt(last);
-			})].join(', ');
+				//可能性のある乱数を検索
+				let rslt = Corkboard.search(pattern);
+
+				//出力
+				output.textContent = ["count=" + rslt.length, ...rslt.map(n => {
+					let first = n - 2;
+					let last = first + pattern.length * 2;
+					return '[' + first + ']=' + rngAt(first) + '..[' + last + ']=' + rngAt(last);
+				})].join(', ');
+			};
+
+			input.oninput = update;
+
+			document.querySelectorAll('#corkboard .input button').forEach(el => {
+				const c = numToChar(Corkboard.names.indexOf(el.textContent));
+				el.onclick = _ => {
+					input.value += c;
+					update();
+				}
+			});
 		}
-		document.querySelectorAll('#corkboard .input button').forEach(el => {
-			const c = numToChar(Corkboard.names.indexOf(el.textContent));
-			el.onclick = _ => {
-				Corkboard.input.value += c;
-				Corkboard.input.oninput();
-			}
-		});
 
+		function setupHeavyLobster() {
+			const input = document.querySelector('#heavy-lobster .input input');
+			const nodes = {
+				preFightAdvance: document.querySelector('#heavy-lobster .preFight .advance'),
+				postDashAdvance: document.querySelector('#heavy-lobster .postDash .advance'),
+				postWalkAdvance: document.querySelector('#heavy-lobster .postWalk .advance'),
+				preFightProbability: document.querySelector('#heavy-lobster .preFight .probability'),
+				postDashProbability: document.querySelector('#heavy-lobster .postDash .probability'),
+				postWalkProbability: document.querySelector('#heavy-lobster .postWalk .probability'),
+				preFightAdvanceMax: document.querySelector('#heavy-lobster .preFight input'),
+				postDashAdvanceMax: document.querySelector('#heavy-lobster .postDash input'),
+				postWalkAdvanceMax: document.querySelector('#heavy-lobster .postWalk input'),
+			};
 
-		HeavyLobster.input = document.querySelector('#heavy-lobster .input input');
-		HeavyLobster.nodes = {
-			preFightAdvance: document.querySelector('#heavy-lobster .preFight .advance'),
-			postDashAdvance: document.querySelector('#heavy-lobster .postDash .advance'),
-			postWalkAdvance: document.querySelector('#heavy-lobster .postWalk .advance'),
-			preFightProbability: document.querySelector('#heavy-lobster .preFight .probability'),
-			postDashProbability: document.querySelector('#heavy-lobster .postDash .probability'),
-			postWalkProbability: document.querySelector('#heavy-lobster .postWalk .probability'),
-			preFightAdvanceMax: document.querySelector('#heavy-lobster .preFight input'),
-			postDashAdvanceMax: document.querySelector('#heavy-lobster .postDash input'),
-			postWalkAdvanceMax: document.querySelector('#heavy-lobster .postWalk input'),
-		};
+			// Load settings
+			let preFightAdvanceMax = Number(localStorage.getItem('HeavyLobster.preFightAdvanceMax')) || 31;
+			let postDashAdvanceMax = Number(localStorage.getItem('HeavyLobster.postDashAdvanceMax')) || 7;
+			let postWalkAdvanceMax = Number(localStorage.getItem('HeavyLobster.postWalkAdvanceMax')) || 11;
 
-		//乱数を進める上限のロード
-		HeavyLobster.preFightAdvanceMax = Number(localStorage.getItem('HeavyLobster.preFightAdvanceMax'));
-		HeavyLobster.postDashAdvanceMax = Number(localStorage.getItem('HeavyLobster.postDashAdvanceMax'));
-		HeavyLobster.postWalkAdvanceMax = Number(localStorage.getItem('HeavyLobster.postWalkAdvanceMax'));
-		HeavyLobster.nodes.preFightAdvanceMax.value = HeavyLobster.preFightAdvanceMax;
-		HeavyLobster.nodes.postDashAdvanceMax.value = HeavyLobster.postDashAdvanceMax;
-		HeavyLobster.nodes.postWalkAdvanceMax.value = HeavyLobster.postWalkAdvanceMax;
+			nodes.preFightAdvanceMax.value = preFightAdvanceMax;
+			nodes.postDashAdvanceMax.value = postDashAdvanceMax;
+			nodes.postWalkAdvanceMax.value = postWalkAdvanceMax;
 
-		HeavyLobster.input.oninput = _ => {
-			const nodes = HeavyLobster.nodes;
+			const update = () => {
+				// Update settings from inputs
+				preFightAdvanceMax = Number(nodes.preFightAdvanceMax.value);
+				postDashAdvanceMax = Number(nodes.postDashAdvanceMax.value);
+				postWalkAdvanceMax = Number(nodes.postWalkAdvanceMax.value);
 
-			//乱数を進める上限を反映
-			HeavyLobster.preFightAdvanceMax = Number(nodes.preFightAdvanceMax.value);
-			HeavyLobster.postDashAdvanceMax = Number(nodes.postDashAdvanceMax.value);
-			HeavyLobster.postWalkAdvanceMax = Number(nodes.postWalkAdvanceMax.value);
+				//数字を矢印に
+				let patternText = charsToArrow(input.value);
+				changeInputText(input, patternText)
 
-			//数字を矢印に
-			let pattern = charsToArrow(HeavyLobster.input.value);
-			changeInputText(HeavyLobster.input, pattern)
+				//矢印を数値に
+				let additions = [0];
+				let pattern = patternText.split('').flatMap(x => {
+					switch (x) {
+						case '+':
+							additions[additions.length - 1]++;
+							return [];
+						case '-':
+							additions[additions.length - 1]--;
+							return [];
+						default:
+							additions.push(0);
+							return [Star.names.indexOf(x)];
+					}
+				});
 
-			//矢印を数値に
-			let additions = [0];
-			pattern = pattern.split('').flatMap(x => {
-				switch (x) {
-					case '+':
-						additions[additions.length - 1]++;
-						return [];
-					case '-':
-						additions[additions.length - 1]--;
-						return [];
-					default:
-						additions.push(0);
-						return [Star.names.indexOf(x)];
+				//5文字未満なら結果を非表示にして終わり
+				if (pattern.length < 5) {
+					nodes.preFightAdvance.textContent = '';
+					nodes.postDashAdvance.textContent = '';
+					nodes.postWalkAdvance.textContent = '';
+					nodes.preFightProbability.textContent = '';
+					nodes.postDashProbability.textContent = '';
+					nodes.postWalkProbability.textContent = '';
+					return;
+				}
+
+				console.log(pattern, additions)
+				//乱数をいくつ進めるか計算
+				let search = HeavyLobster.search(pattern, additions);
+
+				// Calculate with options
+				let calc = HeavyLobster.calc(search, {
+					preFightAdvanceMax,
+					postDashAdvanceMax,
+					postWalkAdvanceMax
+				});
+
+				//出力
+				nodes.preFightAdvance.textContent = calc.advances;
+				nodes.postDashAdvance.textContent = calc.postDash.advances;
+				nodes.postWalkAdvance.textContent = calc.postWalk.advances;
+				nodes.preFightProbability.textContent = (calc.postDash.jumpChance + calc.postWalk.jumpChance) + '/' + (calc.postDash.jumpChance + calc.postWalk.jumpChance + calc.postDash.glideChance + calc.postWalk.glideChance);
+				nodes.postDashProbability.textContent = calc.postDash.jumpChance + '/' + (calc.postDash.jumpChance + calc.postDash.glideChance);
+				nodes.postWalkProbability.textContent = calc.postWalk.jumpChance + '/' + (calc.postWalk.jumpChance + calc.postWalk.glideChance);
+			};
+
+			input.oninput = update;
+
+			document.querySelectorAll('#heavy-lobster .input button').forEach(el => {
+				el.onclick = _ => {
+					input.value += el.textContent;
+					update();
 				}
 			});
 
-			//5文字未満なら結果を非表示にして終わり
-			if (pattern.length < 5) {
-				nodes.preFightAdvance.textContent = '';
-				nodes.postDashAdvance.textContent = '';
-				nodes.postWalkAdvance.textContent = '';
-				nodes.preFightProbability.textContent = '';
-				nodes.postDashProbability.textContent = '';
-				nodes.postWalkProbability.textContent = '';
-				return;
-			}
-
-			//乱数をいくつ進めるか計算
-			let search = HeavyLobster.search(pattern, additions);
-			let calc = HeavyLobster.calc(search);
-
-			//出力
-			nodes.preFightAdvance.textContent = calc.advances;
-			nodes.postDashAdvance.textContent = calc.postDash.advances;
-			nodes.postWalkAdvance.textContent = calc.postWalk.advances;
-			nodes.preFightProbability.textContent = (calc.postDash.jumpChance + calc.postWalk.jumpChance) + '/' + (calc.postDash.jumpChance + calc.postWalk.jumpChance + calc.postDash.glideChance + calc.postWalk.glideChance);
-			nodes.postDashProbability.textContent = calc.postDash.jumpChance + '/' + (calc.postDash.jumpChance + calc.postDash.glideChance);
-			nodes.postWalkProbability.textContent = calc.postWalk.jumpChance + '/' + (calc.postWalk.jumpChance + calc.postWalk.glideChance);
+			// Save on unload inside setup or globally if preferred, here inside setup captures the scoped vars
+			window.addEventListener('beforeunload', () => {
+				localStorage.setItem('HeavyLobster.preFightAdvanceMax', preFightAdvanceMax);
+				localStorage.setItem('HeavyLobster.postDashAdvanceMax', postDashAdvanceMax);
+				localStorage.setItem('HeavyLobster.postWalkAdvanceMax', postWalkAdvanceMax);
+			});
 		}
-		document.querySelectorAll('#heavy-lobster .input button').forEach(el => {
-			el.onclick = _ => {
-				HeavyLobster.input.value += el.textContent;
-				HeavyLobster.input.oninput();
-			}
-		});
 
-		onbeforeunload = e => {
-			//乱数を進める上限のセーブ
-			localStorage.setItem('HeavyLobster.preFightAdvanceMax', HeavyLobster.preFightAdvanceMax);
-			localStorage.setItem('HeavyLobster.postDashAdvanceMax', HeavyLobster.postDashAdvanceMax);
-			localStorage.setItem('HeavyLobster.postWalkAdvanceMax', HeavyLobster.postWalkAdvanceMax);
-		}
+		// Initialize
+		setupCorkboard();
+		setupHeavyLobster();
+
 	</script>
 </body>
 

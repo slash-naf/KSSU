@@ -60,10 +60,6 @@ const FattyWhale = {
 
 //ヘビーロブスター戦で星の向きから乱数を予測し、乱数をいくつ手動で進めれば目的の乱数を引けるか計算
 const HeavyLobster = {
-	preFightAdvanceMax: 31,
-	postDashAdvanceMax: 7,
-	postWalkAdvanceMax: 11,
-
 	isDash: i => randiAt(i, 4) !== 0,
 	isWalk: i => randiAt(i, 4) === 0,
 	isGlide: i => randiAt(i, 4) !== 0,
@@ -89,8 +85,11 @@ const HeavyLobster = {
 			[0, 64, 127, 160, 179, 555, 584, 598],
 		*/
 		let addition = 0;
-		const offsets = new Uint16Array([0, 64, 127, 160, 179, 555, 584, 598], (v, i) => v + (addition += (additions[i] ?? 0)));
-
+		const offsets = [0, 64, 127, 160, 179, 555, 584, 598].map((v, i) => {
+			addition += additions[i] ?? 0;
+			return v + addition;
+		});
+		console.log(offsets)
 		//乱数パターンごとに確率を記録
 		const list = [];
 		const push = (chance, a, n = 0) => {
@@ -137,7 +136,11 @@ const HeavyLobster = {
 		return list;
 	},
 	//乱数を進める最適な量を計算
-	calc(candidates) {
+	calc(candidates, {
+		preFightAdvanceMax = 31,
+		postDashAdvanceMax = 7,
+		postWalkAdvanceMax = 11,
+	} = {}) {
 		const preFight = {
 			advances: 0,
 			postDash: {
@@ -152,18 +155,14 @@ const HeavyLobster = {
 			},
 		};
 
-		const preFightAdvancesMax = this.preFightAdvanceMax;
-		const postDashAdvancesMax = this.postDashAdvanceMax;
-		const postWalkAdvancesMax = this.postWalkAdvanceMax;
-
-		for (let preFightAdvances = 0; preFightAdvances <= preFightAdvancesMax; preFightAdvances++) {
+		for (let preFightAdvances = 0; preFightAdvances <= preFightAdvanceMax; preFightAdvances++) {
 			//走った場合に乱数を進める最適な量を探す
 			const postDash = {
 				advances: 0,
 				jumpChance: 0,
 				glideChance: 0,
 			}
-			for (let postDashAdvances = 0; postDashAdvances <= postDashAdvancesMax; postDashAdvances++) {
+			for (let postDashAdvances = 0; postDashAdvances <= postDashAdvanceMax; postDashAdvances++) {
 				//走った場合の飛ぶ確率と滑る確率を計算
 				let jumpChance = 0;
 				let glideChance = 0;
@@ -190,7 +189,7 @@ const HeavyLobster = {
 				jumpChance: 0,
 				glideChance: 0,
 			};
-			for (let postWalkAdvances = 0; postWalkAdvances <= postWalkAdvancesMax; postWalkAdvances++) {
+			for (let postWalkAdvances = 0; postWalkAdvances <= postWalkAdvanceMax; postWalkAdvances++) {
 				//歩いた場合の飛ぶ確率と滑る確率を計算
 				let jumpChance = 0;
 				let glideChance = 0;
