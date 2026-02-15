@@ -71,7 +71,7 @@ const HeavyLobster = {
 	 * @param {Array} additions 各タイミングでの乱数の想定とのズレの配列
 	 * @returns {Array} 乱数の位置と出現確率の配列 [{dashOrWalkIdx, afterDashIdx, afterWalkIdx, chance}]
 	 */
-	search(pattern, additions = [], { preFightAdvanceMax = 31, postDashAdvanceMax = 7, postWalkAdvanceMax = 11, } = {}, start = 0, len = CYCLE_LEN) {
+	search(pattern, additions = [], { preFightAdvancesMax, postDashAdvancesMax, postWalkAdvancesMax, } = {}, start = 0, len = CYCLE_LEN) {
 		//0～4:星の向き、5:走るか、6:走った後、7:歩いた後
 		/*
 			乱数タイマーごとの乱数位置のパターン
@@ -89,7 +89,6 @@ const HeavyLobster = {
 			addition += additions[i] ?? 0;
 			return v + addition;
 		});
-		console.log(offsets)
 		//乱数パターンごとに確率を記録
 		const candidates = [];
 		const push = (chance, a, n = 0) => {
@@ -135,14 +134,14 @@ const HeavyLobster = {
 			},
 		};
 
-		for (let preFightAdvances = 0; preFightAdvances <= preFightAdvanceMax; preFightAdvances++) {
+		for (let preFightAdvances = 0; preFightAdvances <= preFightAdvancesMax; preFightAdvances++) {
 			//走った場合に乱数を進める最適な量を探す
 			const postDash = {
 				advances: 0,
 				jumpChance: 0,
 				glideChance: 0,
 			}
-			for (let postDashAdvances = 0; postDashAdvances <= postDashAdvanceMax; postDashAdvances++) {
+			for (let postDashAdvances = 0; postDashAdvances <= postDashAdvancesMax; postDashAdvances++) {
 				//走った場合の飛ぶ確率と滑る確率を計算
 				let jumpChance = 0;
 				let glideChance = 0;
@@ -169,7 +168,7 @@ const HeavyLobster = {
 				jumpChance: 0,
 				glideChance: 0,
 			};
-			for (let postWalkAdvances = 0; postWalkAdvances <= postWalkAdvanceMax; postWalkAdvances++) {
+			for (let postWalkAdvances = 0; postWalkAdvances <= postWalkAdvancesMax; postWalkAdvances++) {
 				//歩いた場合の飛ぶ確率と滑る確率を計算
 				let jumpChance = 0;
 				let glideChance = 0;

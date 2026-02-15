@@ -43,22 +43,18 @@
 				<tr>
 					<td>
 					<td>進める量
-					<td>飛ぶ確率
 					<td>進める上限
 				<tr class="preFight">
 					<th>戦うまでに
-					<td class="advance">
-					<td class="probability">
+					<td class="advances">
 					<td><input type="number">
 				<tr class="postDash">
 					<th>走ったら
-					<td class="advance">
-					<td class="probability">
+					<td class="advances">
 					<td><input type="number">
 				<tr class="postWalk">
 					<th>歩いたら
-					<td class="advance">
-					<td class="probability">
+					<td class="advances">
 					<td><input type="number">
 			</table>
 		</li>
@@ -124,33 +120,43 @@
 
 		function setupHeavyLobster() {
 			const input = document.querySelector('#heavy-lobster .input input');
-			const nodes = {
-				preFightAdvance: document.querySelector('#heavy-lobster .preFight .advance'),
-				postDashAdvance: document.querySelector('#heavy-lobster .postDash .advance'),
-				postWalkAdvance: document.querySelector('#heavy-lobster .postWalk .advance'),
-				preFightProbability: document.querySelector('#heavy-lobster .preFight .probability'),
-				postDashProbability: document.querySelector('#heavy-lobster .postDash .probability'),
-				postWalkProbability: document.querySelector('#heavy-lobster .postWalk .probability'),
-				preFightAdvanceMax: document.querySelector('#heavy-lobster .preFight input'),
-				postDashAdvanceMax: document.querySelector('#heavy-lobster .postDash input'),
-				postWalkAdvanceMax: document.querySelector('#heavy-lobster .postWalk input'),
+			const preFightAdvances = document.querySelector('#heavy-lobster .preFight .advances');
+			const postDashAdvances = document.querySelector('#heavy-lobster .postDash .advances');
+			const postWalkAdvances = document.querySelector('#heavy-lobster .postWalk .advances');
+			const preFightAdvancesMax = document.querySelector('#heavy-lobster .preFight input');
+			const postDashAdvancesMax = document.querySelector('#heavy-lobster .postDash input');
+			const postWalkAdvancesMax = document.querySelector('#heavy-lobster .postWalk input');
+
+			// 進める上限の初期化
+			const init = () => {
+				const a = {
+					preFightAdvancesMax: parseInt(preFightAdvancesMax.value) || 31,
+					postDashAdvancesMax: parseInt(postDashAdvancesMax.value) || 7,
+					postWalkAdvancesMax: parseInt(postWalkAdvancesMax.value) || 11,
+				};
+				preFightAdvancesMax.value = a.preFightAdvancesMax;
+				postDashAdvancesMax.value = a.postDashAdvancesMax;
+				postWalkAdvancesMax.value = a.postWalkAdvancesMax;
+				return a;
 			};
+			preFightAdvancesMax.value = localStorage.getItem('HeavyLobster.preFightAdvancesMax');
+			postDashAdvancesMax.value = localStorage.getItem('HeavyLobster.postDashAdvancesMax');
+			postWalkAdvancesMax.value = localStorage.getItem('HeavyLobster.postWalkAdvancesMax');
+			init();
 
-			let preFightAdvanceMax = Number(localStorage.getItem('HeavyLobster.preFightAdvanceMax')) || 31;
-			let postDashAdvanceMax = Number(localStorage.getItem('HeavyLobster.postDashAdvanceMax')) || 7;
-			let postWalkAdvanceMax = Number(localStorage.getItem('HeavyLobster.postWalkAdvanceMax')) || 11;
+			// 進める上限の保存
+			const save = () => {
+				localStorage.setItem('HeavyLobster.preFightAdvancesMax', preFightAdvancesMax.value);
+				localStorage.setItem('HeavyLobster.postDashAdvancesMax', postDashAdvancesMax.value);
+				localStorage.setItem('HeavyLobster.postWalkAdvancesMax', postWalkAdvancesMax.value);
+			};
+			preFightAdvancesMax.oninput = save;
+			postDashAdvancesMax.oninput = save;
+			postWalkAdvancesMax.oninput = save;
 
-			nodes.preFightAdvanceMax.value = preFightAdvanceMax;
-			nodes.postDashAdvanceMax.value = postDashAdvanceMax;
-			nodes.postWalkAdvanceMax.value = postWalkAdvanceMax;
-
+			// 進める量の計算と表示
 			const update = () => {
-				// 進める上限
-				preFightAdvanceMax = Number(nodes.preFightAdvanceMax.value);
-				postDashAdvanceMax = Number(nodes.postDashAdvanceMax.value);
-				postWalkAdvanceMax = Number(nodes.postWalkAdvanceMax.value);
-
-				//数字を矢印に
+				//文字を矢印に
 				let patternText = charsToArrow(input.value);
 				changeInputText(input, patternText)
 
@@ -172,50 +178,31 @@
 
 				//5文字未満なら結果を非表示にして終わり
 				if (pattern.length < 5) {
-					nodes.preFightAdvance.textContent = '';
-					nodes.postDashAdvance.textContent = '';
-					nodes.postWalkAdvance.textContent = '';
-					nodes.preFightProbability.textContent = '';
-					nodes.postDashProbability.textContent = '';
-					nodes.postWalkProbability.textContent = '';
+					preFightAdvances.textContent = '';
+					postDashAdvances.textContent = '';
+					postWalkAdvances.textContent = '';
 					return;
 				}
 
 				// 乱数をいくつ進めるか計算
-				let result = HeavyLobster.search(pattern, additions, {
-					preFightAdvanceMax,
-					postDashAdvanceMax,
-					postWalkAdvanceMax
-				});
+				let result = HeavyLobster.search(pattern, additions, init());
 
 				// 結果を出力
-				nodes.preFightAdvance.textContent = result.advances;
-				nodes.postDashAdvance.textContent = result.postDash.advances;
-				nodes.postWalkAdvance.textContent = result.postWalk.advances;
-				nodes.preFightProbability.textContent = (result.postDash.jumpChance + result.postWalk.jumpChance) + '/' + (result.postDash.jumpChance + result.postWalk.jumpChance + result.postDash.glideChance + result.postWalk.glideChance);
-				nodes.postDashProbability.textContent = result.postDash.jumpChance + '/' + (result.postDash.jumpChance + result.postDash.glideChance);
-				nodes.postWalkProbability.textContent = result.postWalk.jumpChance + '/' + (result.postWalk.jumpChance + result.postWalk.glideChance);
-			};
+				preFightAdvances.textContent = result.advances;
+				postDashAdvances.textContent = result.postDash.advances;
+				postWalkAdvances.textContent = result.postWalk.advances;
 
+				console.log(result)
+			};
 			input.oninput = update;
 
+			// ボタンで文字追加
 			document.querySelectorAll('#heavy-lobster .input button').forEach(el => {
-				el.onclick = _ => {
+				el.onclick = () => {
 					input.value += el.textContent;
 					update();
 				}
 			});
-
-			// 進める上限の保存
-			const save = () => {
-				localStorage.setItem('HeavyLobster.preFightAdvanceMax', preFightAdvanceMax);
-				localStorage.setItem('HeavyLobster.postDashAdvanceMax', postDashAdvanceMax);
-				localStorage.setItem('HeavyLobster.postWalkAdvanceMax', postWalkAdvanceMax);
-				update()
-			}
-			nodes.preFightAdvanceMax.oninput = save;
-			nodes.postDashAdvanceMax.oninput = save;
-			nodes.postWalkAdvanceMax.oninput = save;
 		}
 
 		// 初期化
