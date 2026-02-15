@@ -106,8 +106,8 @@
 					return '[' + first + ']=' + rngAt(first) + '..[' + last + ']=' + rngAt(last);
 				})].join(', ');
 			};
-
-			input.oninput = update;
+			input.oninput = e => e.isComposing || update();
+			addEventListener('compositionend', update)
 
 			document.querySelectorAll('#corkboard .input button').forEach(el => {
 				const c = numToChar(Corkboard.names.indexOf(el.textContent));
@@ -194,7 +194,8 @@
 
 				console.log(result)
 			};
-			input.oninput = update;
+			input.oninput = e => e.isComposing || update();
+			addEventListener('compositionend', update)
 
 			// ボタンで文字追加
 			document.querySelectorAll('#heavy-lobster .input button').forEach(el => {
