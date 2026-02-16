@@ -293,6 +293,26 @@ const Arena = {
 		}
 
 		return bossOrder;
+	},
+	//一戦目のボスと乱数候補からボス順を予測
+	predict(candidates, firstBoss, isTrueArena) {
+		const orderFn = isTrueArena
+			? (idx) => this.trueArenaBossOrder(idx, 0)
+			: (idx) => this.arenaBossOrder(idx, 0);
+		const limit = isTrueArena ? 6 : 18;
+		const timerMax = isTrueArena ? 3 : 15;
+
+		const results = [];
+		for (const idx of candidates) {
+			const order0 = orderFn(idx+1);
+			//timer=0のときの一戦目のボスとの差からtimerを逆算
+			const offset = (firstBoss - order0[0] + limit) % limit;
+			if (offset > timerMax) continue;
+			//オフセットを適用して実際のボス順を計算
+			const order = Array.from(order0).map((b, i) => i < limit ? (b + offset) % limit : b);
+			results.push({ idx, timer: offset, order });
+		}
+		return results;
 	}
 }
 
