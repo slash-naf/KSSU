@@ -210,107 +210,71 @@ const HeavyLobster = {
 
 //格闘王への道
 const Arena = {
-	//通常の格闘王への道の並び順
+	//ボス順の初期配列を生成しシャッフル
+	_buildOrder(idx, timer, timerMask, shuffleLen, totalLen) {
+		const offset = timer & timerMask;
+		const bossOrder = Uint8Array.from({length:totalLen}, (_, i)=>
+			i < shuffleLen
+			? (offset + i) % shuffleLen	//シャッフル対象を回転させて初期化
+			: i	//固定ボスを末尾に配置
+		);
+		//シャッフル
+		for (let i = 0; i < shuffleLen; i++) {
+			const r = randiAt(++idx, shuffleLen);
+			[bossOrder[i], bossOrder[r]] = [bossOrder[r], bossOrder[i]];
+		}
+		return bossOrder;
+	},
+
+	//通常の格闘王への道
 	arenaBosses: [
-		"ワドルディ",
-		"中ボス2",
-		"中ボス1",
-		"バトルウィンドウズ",
-		"2連主砲",
-		"魔人ワムバムロック",
-		"デデデ大王",
-		"ダイナブレイド",
-		"ファッティホエール",
-		"ガメレオアーム",
-		"ヘビーロブスター",
-		"クラッコ",
-		"ロロロ&ラララ",
-		"メタナイト",
-		"ギャラクティック・ノヴァ",
-		"リアクター",
-		"ツインウッズ",
-		"ウィスピーウッズ",
-		"マルク",
+		"ワドルディ", "中ボス2", "中ボス1", "バトルウィンドウズ",
+		"2連主砲", "魔人ワムバムロック", "デデデ大王", "ダイナブレイド",
+		"ファッティホエール", "ガメレオアーム", "ヘビーロブスター", "クラッコ",
+		"ロロロ&ラララ", "メタナイト", "ギャラクティック・ノヴァ", "リアクター",
+		"ツインウッズ", "ウィスピーウッズ",
+		"マルク",	//固定
 	],
 	arenaBossOrder(idx, timer) {
-		//初期化 (0..17 の値を回転させて埋める)
-		const bossOrder = new Uint8Array(19);
-		let offset = timer & 0xF;	//乱数タイマーから開始オフセットを決定 (0-15)
-		const limit = 18;	//マルクは固定
-		for (let i = 0; i < limit; i++) {
-			if (offset >= limit) {
-				offset = 0;
-			}
-			bossOrder[i] = offset;
-			offset++;
-		}
-		bossOrder[18] = 18;
-
-		//マルク以外のシャッフル
-		//各要素について、0..17 のランダムな位置と交換
-		for (let i = 0; i < limit; i++) {
-			const r = randiAt(idx++, limit);
-			[bossOrder[i], bossOrder[r]] = [bossOrder[r], bossOrder[i]];
-		}
-
-		return bossOrder;
+		return this._buildOrder(idx, timer, 0xF, 18, 19);
 	},
-	//真・格闘王への道の並び順
+
+	//真・格闘王への道
 	trueArenaBosses: [
-		"中ボス",
-		"カブーラー",
-		"クラッコJr.リベンジ",
-		"クラッコリベンジ",
-		"ロロロ&ラララリベンジ",
-		"ウイスピーウッズリベンジ",
-		"マスクドデデデ",
-		"ワムバムジュエル",
-		"ギャラクティックナイト",
-		"マルクソウル",
+		"中ボス", "カブーラー", "クラッコJr.リベンジ",
+		"クラッコリベンジ", "ロロロ&ラララリベンジ", "ウイスピーウッズリベンジ",
+		"マスクドデデデ", "ワムバムジュエル", "ギャラクティックナイト", "マルクソウル",	//固定
 	],
 	trueArenaBossOrder(idx, timer) {
-		//初期化 (0..5 の値を回転させて埋める)
-		const bossOrder = new Uint8Array(10);
-		let offset = timer & 0x3;	//乱数タイマーから開始オフセットを決定 (0-3)
-		const limit = 6;	//四天王は固定
-		for (let i = 0; i < limit; i++) {
-			if (offset >= limit) {
-				offset = 0;
-			}
-			bossOrder[i] = offset;
-			offset++;
-		}
-		bossOrder[6] = 6;
-		bossOrder[7] = 7;
-		bossOrder[8] = 8;
-		bossOrder[9] = 9;
-
-		//前半6ボスのシャッフル
-		//各要素について、0..5 のランダムな位置と交換
-		for (let i = 0; i < limit; i++) {
-			const r = randiAt(idx++, limit);
-			[bossOrder[i], bossOrder[r]] = [bossOrder[r], bossOrder[i]];
-		}
-
-		return bossOrder;
+		return this._buildOrder(idx, timer, 0x3, 6, 10);
 	},
-	//一戦目のボスと乱数候補からボス順を予測
+
+	//モード別設定
+	_config(isTrueArena) {
+		return isTrueArena
+			? { bosses: this.trueArenaBosses, orderFn: (i, t) => this.trueArenaBossOrder(i, t), shuffleLen: 6, timerMax: 3 }
+			: { bosses: this.arenaBosses, orderFn: (i, t) => this.arenaBossOrder(i, t), shuffleLen: 18, timerMax: 15 };
+	},
+
+	/**
+	 * 一戦目のボスと乱数候補からボス順を予測
+	 * @param {number[]} candidates コルクボード検索から得た乱数位置の配列
+	 * @param {number} firstBoss 一戦目のボスのインデックス
+	 * @param {boolean} isTrueArena 真・格闘王への道かどうか
+	 */
 	predict(candidates, firstBoss, isTrueArena) {
-		const orderFn = isTrueArena
-			? (idx) => this.trueArenaBossOrder(idx, 0)
-			: (idx) => this.arenaBossOrder(idx, 0);
-		const limit = isTrueArena ? 6 : 18;
-		const timerMax = isTrueArena ? 3 : 15;
+		const { orderFn, shuffleLen, timerMax } = this._config(isTrueArena);
 
 		const results = [];
 		for (const idx of candidates) {
-			const order0 = orderFn(idx+1);
-			//timer=0のときの一戦目のボスとの差からtimerを逆算
-			const offset = (firstBoss - order0[0] + limit) % limit;
-			if (offset > timerMax) continue;
-			//オフセットを適用して実際のボス順を計算
-			const order = Array.from(order0).map((b, i) => i < limit ? (b + offset) % limit : b);
-			results.push({ idx, timer: offset, order });
+			//コルクボード結果の次の乱数位置からシャッフルが始まる
+			const order0 = orderFn(idx, 0);
+			//timer=0での一戦目との差からtimerを逆算
+			const timer = (firstBoss - order0[0] + shuffleLen) % shuffleLen;
+			if (timer > timerMax) continue;
+			//timerオフセットを適用して実際のボス順を計算
+			const order = Array.from(order0, (b, i) => i < shuffleLen ? (b + timer) % shuffleLen : b);
+			results.push({ idx, timer, order });
 		}
 		return results;
 	}

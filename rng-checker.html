@@ -21,10 +21,9 @@
 			</ul>
 		</li>
 		<li id="arena">格闘王への道のボスの順番の予測<ul>
-				<li class="input">
-					<button class="active">格闘王への道</button>
-					<button>真・格闘王への道</button>
-					一戦目: <select><option value="-1">---</option></select>
+				<li class="input">1戦目: <select><option value="-1">---</option></select>
+					<label><input type="radio" name="arena-mode" value="arena" checked>格闘王への道</label>
+					<label><input type="radio" name="arena-mode" value="true-arena">真・格闘王への道</label>
 				</li>
 				<li class="output"></li>
 			</ul>
@@ -135,17 +134,17 @@
 		}
 
 		function setupArena() {
-			const modeButtons = document.querySelectorAll('#arena .input button');
+			const modeRadios = document.querySelectorAll('#arena input[name="arena-mode"]');
 			const select = document.querySelector('#arena select');
 			const output = document.querySelector('#arena .output');
-			let isTrueArena = true;
 
 			//ボス選択肢の更新
 			const updateBossList = () => {
-				const bosses = isTrueArena ? Arena.trueArenaBosses : Arena.arenaBosses;
-				const limit = isTrueArena ? 6 : 18;
+				const isTrueArena = modeRadios[1].checked;
+
+				const { bosses, shuffleLen } = Arena._config(isTrueArena);
 				select.innerHTML = '<option value="-1">---</option>';
-				for (let i = 0; i < limit; i++) {
+				for (let i = 0; i < shuffleLen; i++) {
 					const opt = document.createElement('option');
 					opt.value = i;
 					opt.textContent = bosses[i];
@@ -155,6 +154,8 @@
 
 			//予測結果の表示
 			const update = () => {
+				const isTrueArena = modeRadios[1].checked;
+
 				const firstBoss = parseInt(select.value);
 				if (firstBoss < 0 || corkboardResults.length === 0) {
 					output.textContent = '';
@@ -162,7 +163,7 @@
 				}
 
 				const results = Arena.predict(corkboardResults, firstBoss, isTrueArena);
-				const bosses = isTrueArena ? Arena.trueArenaBosses : Arena.arenaBosses;
+				const { bosses } = Arena._config(isTrueArena);
 
 				if (results.length === 0) {
 					output.textContent = '該当なし';
@@ -170,28 +171,18 @@
 				}
 
 				//重複するオーダーを除去
-				const seen = new Set();
-				const unique = results.filter(r => {
-					const key = r.order.join(',');
-					if (seen.has(key)) return false;
-					seen.add(key);
-					return true;
-				});
+				const unique = [...new Map(results.map(r => [r.order.join(), r])).values()];
 
 				output.style.whiteSpace = 'pre-line';
 				output.textContent = 'パターン数: ' + unique.length + '\n' +
-					unique.map((r, ri) =>
-						(unique.length > 1 ? `[${ri + 1}] ` : '') +
-						Array.from(r.order).map(b => bosses[b]).join(' → ')
+					unique.map(r =>
+						`[${r.idx}] ` + Array.from(r.order).map(b => bosses[b]).join(' → ')
 					).join('\n');
 			};
 
 			//モード切り替え
-			modeButtons.forEach((btn, i) => {
-				btn.onclick = () => {
-					isTrueArena = i === 1;
-					modeButtons.forEach(b => b.classList.remove('active'));
-					btn.classList.add('active');
+			modeRadios.forEach(radio => {
+				radio.onchange = () => {
 					updateBossList();
 					update();
 				};
