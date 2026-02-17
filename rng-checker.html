@@ -22,8 +22,8 @@
 		</li>
 		<li id="arena">格闘王への道のボスの順番の予測<ul>
 				<li class="input">1戦目: <select><option value="-1">---</option></select>
-					<label><input type="radio" name="arena-mode" value="arena" checked>格闘王への道</label>
-					<label><input type="radio" name="arena-mode" value="true-arena">真・格闘王への道</label>
+					<label><input type="radio" name="arena-mode" value="Arena" checked>格闘王への道</label>
+					<label><input type="radio" name="arena-mode" value="TrueArena">真・格闘王への道</label>
 				</li>
 				<li class="output"></li>
 			</ul>
@@ -69,9 +69,7 @@
 	</ul>
 	<script type="module">
 
-		import { Corkboard, HeavyLobster, Star, Arena, rngAt, randiAt } from './rng.mjs';
-
-		const toHex = (num, len = 8) => (num >>> 0).toString(16).padStart(len, "0").toUpperCase();
+		import { Corkboard, HeavyLobster, Star, Arena, TrueArena, rngAt } from './rng.mjs';
 
 		const numToChar = n => n < 0 ? '?' : n.toString(36);
 		const charsToPattern = s => s.split('').map(c => {
@@ -81,7 +79,7 @@
 		const charsToArrow = s => s.replace(/[^↑↗→↘↓↙←↖+-]/g, m => {
 			const nums = "89632147wedcxzaqWEDCXZAQ";
 			const idx = nums.indexOf(m);
-			return idx < 0 ? '?' : Star.names[idx % 8];
+			return idx < 0 ? '?' : Star.NAMES[idx % 8];
 		});
 		const changeInputText = (input, s) => {
 			let sav = input.selectionStart;
@@ -111,21 +109,19 @@
 
 				//可能性のある乱数を検索
 				let rslt = Corkboard.search(pattern);
-				corkboardResults = rslt.map(n => n - 2 + pattern.length * 2);
+				corkboardResults = rslt.map(r => r.current);
 				updateArena();
 
 				//出力
-				output.textContent = ["count=" + rslt.length, ...rslt.map(n => {
-					let first = n - 2;
-					let last = first + pattern.length * 2;
-					return '[' + first + ']=' + rngAt(first) + '..[' + last + ']=' + rngAt(last);
-				})].join(', ');
+				output.textContent = ["count=" + rslt.length, ...rslt.map(r =>
+					'[' + r.i + ']=' + rngAt(r.i) + '..[' + r.current + ']=' + rngAt(r.current)
+				)].join(', ');
 			};
 			input.oninput = e => e.isComposing || update();
 			addEventListener('compositionend', update)
 
 			document.querySelectorAll('#corkboard .input button').forEach(el => {
-				const c = numToChar(Corkboard.names.indexOf(el.textContent));
+				const c = numToChar(Corkboard.NAMES.indexOf(el.textContent));
 				el.onclick = _ => {
 					input.value += c;
 					update();
@@ -138,32 +134,40 @@
 			const select = document.querySelector('#arena select');
 			const output = document.querySelector('#arena .output');
 
+			//現在のモードを取得
+			const getArena = () => {
+				for(const radio of modeRadios){
+					if(radio.checked){
+						return {
+							"Arena": Arena,
+							"TrueArena": TrueArena,
+						}[radio.value];
+					}
+				}
+			};
+
 			//ボス選択肢の更新
 			const updateBossList = () => {
-				const isTrueArena = modeRadios[1].checked;
-
-				const { bosses, shuffleLen } = Arena._config(isTrueArena);
+				const arena = getArena();
 				select.innerHTML = '<option value="-1">---</option>';
-				for (let i = 0; i < shuffleLen; i++) {
+				for (let i = 0; i < arena.SHUFFLE_LEN; i++) {
 					const opt = document.createElement('option');
 					opt.value = i;
-					opt.textContent = bosses[i];
+					opt.textContent = arena.NAMES[i];
 					select.appendChild(opt);
 				}
 			};
 
 			//予測結果の表示
 			const update = () => {
-				const isTrueArena = modeRadios[1].checked;
-
 				const firstBoss = parseInt(select.value);
 				if (firstBoss < 0 || corkboardResults.length === 0) {
 					output.textContent = '';
 					return;
 				}
 
-				const results = Arena.predict(corkboardResults, firstBoss, isTrueArena);
-				const { bosses } = Arena._config(isTrueArena);
+				const arena = getArena();
+				const results = arena.searchBossOrder(corkboardResults, firstBoss);
 
 				if (results.length === 0) {
 					output.textContent = '該当なし';
@@ -171,12 +175,12 @@
 				}
 
 				//重複するオーダーを除去
-				const unique = [...new Map(results.map(r => [r.order.join(), r])).values()];
+				const unique = [...new Map(results.map(r => [r.join(), r])).values()];
 
 				output.style.whiteSpace = 'pre-line';
 				output.textContent = 'パターン数: ' + unique.length + '\n' +
-					unique.map(r =>
-						`[${r.idx}] ` + Array.from(r.order).map(b => bosses[b]).join(' → ')
+					unique.map(order =>
+						Array.from(order, b => arena.NAMES[b]).join(' → ')
 					).join('\n');
 			};
 
@@ -248,7 +252,7 @@
 							return [];
 						default:
 							additions.push(0);
-							return [Star.names.indexOf(x)];
+							return [Star.NAMES.indexOf(x)];
 					}
 				});
 

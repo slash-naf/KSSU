@@ -1,22 +1,33 @@
-//ソフトリセットした時刻から初期シードを計算
-const initialSeed = (minutes, seconds) => (minutes & 0xF) << 8 | seconds;
+/** ソフトリセットした時刻から初期シードを計算 */
+export function initialSeed(minutes, seconds){
+	return (minutes & 0xF) << 8 | seconds;
+}
 
 //乱数生成器
 const CYCLE_LEN = 0x1000;	//周期は2の12乗
 const SEED_MASK = 0xFFF;
-const rngCycle = new Uint16Array(CYCLE_LEN);
-for (let i = 0, x = 0; i < CYCLE_LEN; i++, x = x * 61 + 1401 & SEED_MASK) {	//乱数は線形合同法で、生成式は X[n+1] = (61 × X[n] + 1401) mod 2^12
-	rngCycle[i] = x;
+const CYCLE = new Uint16Array(CYCLE_LEN);
+for(let i=0, x=0; i < CYCLE_LEN; i++, x = x * 61 + 1401 & SEED_MASK){	//乱数は線形合同法で、生成式は X[n+1] = (61 × X[n] + 1401) mod 2^12
+	CYCLE[i] = x;
 }
-const rngAt = i => rngCycle[i & SEED_MASK];	//指定した位置の乱数値を取得
-const randi = (seed, max) => seed * max >> 12;	//乱数値を基に、指定した最大値未満の整数を取得
-const randiAt = (i, max) => randi(rngAt(i), max);	//指定した位置の乱数値を基に、指定した最大値未満の整数を取得
+/** 指定した位置の乱数値を取得 */
+export function rngAt(i){
+	return CYCLE[i & SEED_MASK];
+}
+/** 乱数値を基に、指定した最大値未満の整数を取得 */
+export function randi(seed, max){
+	return seed * max >> 12;
+}
+/** 指定した位置の乱数値を基に、指定した最大値未満の整数を取得 */
+export function randiAt(i, max){
+	return randi(rngAt(i), max);
+}
 
-//値から位置を取得
-function rngIdxOf(s) {
+/** 値から位置を逆算 */
+export function rngIdxOf(s){
 	let r = 0, a = 61, b = 1401, k = 1;
-	while (k < 0x1000) {
-		if (s & 1) {
+	while(k < 0x1000){
+		if(s & 1){
 			s = a * s + b;
 			r -= k;
 		}
@@ -29,49 +40,66 @@ function rngIdxOf(s) {
 }
 
 /** カービィの着地や衝突による星の向きの乱数 */
-const Star = {
-	names: ['↑', '↗', '→', '↘', '↓', '↙', '←', '↖'],
-	at: i => randiAt(i, 9) & 7,	//各向きの確率は均等ではなく、上が9分の2の確率
+export const Star = {
+	NAMES: ['↑', '↗', '→', '↘', '↓', '↙', '←', '↖'],
+	at(i){
+		return randiAt(i, 9) & 7;	//各向きの確率は均等ではなく、上が9分の2の確率
+	},
 }
 
-//コルクボードの曲から乱数を予測
-const Corkboard = {
-	names: ['裏コルクボード', 'コルクボード'],
-	at: i => randiAt(i, 2),
+/** コルクボードの曲から乱数を予測 */
+export const Corkboard = {
+	NAMES: ['裏コルクボード', 'コルクボード'],
+	at(i){
+		return randiAt(i, 2);
+	},
 	/**
 	 * コルクボードの曲のパターンに対応する乱数を検索
 	 * @param {Array} pattern 1:裏コルクボード、0:コルクボード、-1:ワイルドカード
 	 * @returns {Array} 乱数の位置の配列
 	 */
-	search(pattern) {
+	search(pattern){
 		const rslt = [];
-		for (let i = 0; i < CYCLE_LEN; i++) {
-			if (pattern.every((x, advances) => -1 === x || this.at(i + advances * 2) === x)) {	//タイトル画面とコルクボードの往復で乱数が2進む
-				rslt.push(i);
+		for(let i = 0; i < CYCLE_LEN; i++){
+			if(pattern.every((x, advances) => -1 === x || this.at(i + advances * 2) === x)){	//タイトル画面とコルクボードの往復で乱数が2進む
+				rslt.push({i: i - 2, current: i - 2 + pattern.length * 2});
 			}
 		}
 		return rslt;
-	}
+	},
 }
 
-const FattyWhale = {
-	rollsAt: i => 0b01001101 >> (rngAt(i - 3) & 4) + randiAt(i, 4) & 1,
+/** ファッティホエール */
+export const FattyWhale = {
+	rollsAt(i){
+		return 0b01001101 >> (rngAt(i - 3) & 4) + randiAt(i, 4) & 1;
+	},
 }
 
-//ヘビーロブスター戦で星の向きから乱数を予測し、乱数をいくつ手動で進めれば目的の乱数を引けるか計算
-const HeavyLobster = {
-	isDash: i => randiAt(i, 4) !== 0,
-	isWalk: i => randiAt(i, 4) === 0,
-	isGlide: i => randiAt(i, 4) !== 0,
-	isJump: i => randiAt(i, 4) === 0,
+/** ヘビーロブスター戦で星の向きから乱数を予測し、乱数をいくつ手動で進めれば目的の乱数を引けるか計算 */
+export const HeavyLobster = {
+	//歩くか走るか
+	walksAt(i){
+		return randiAt(i, 4) === 0;
+	},
+	dashesAt(i){
+		return !this.walksAt(i);
+	},
+
+	//飛ぶか滑走するか
+	jumpsAt(i){
+		return randiAt(i, 4) === 0;
+	},
+	glidesAt(i){
+		return !this.jumpsAt(i);
+	},
 
 	/**
 	 * 星の向きから乱数を推測
 	 * @param {Array} pattern 0～7:星の向き, -1:ワイルドカード
 	 * @param {Array} additions 各タイミングでの乱数の想定とのズレの配列
-	 * @returns {Array} 乱数の位置と出現確率の配列 [{dashOrWalkIdx, afterDashIdx, afterWalkIdx, chance}]
 	 */
-	search(pattern, additions = [], { preFightAdvancesMax, postDashAdvancesMax, postWalkAdvancesMax, } = {}, start = 0, len = CYCLE_LEN) {
+	search(pattern, additions = [], { preFightAdvancesMax, postDashAdvancesMax, postWalkAdvancesMax, } = {}, start = 0, len = CYCLE_LEN){
 		//0～4:星の向き、5:走るか、6:走った後、7:歩いた後
 		/*
 			乱数タイマーごとの乱数位置のパターン
@@ -146,8 +174,8 @@ const HeavyLobster = {
 				let jumpChance = 0;
 				let glideChance = 0;
 				for (const x of candidates) {
-					if (this.isDash(x.dashOrWalkIdx + preFightAdvances)) {
-						if (this.isJump(x.afterDashIdx + preFightAdvances + postDashAdvances)) {
+					if (this.dashesAt(x.dashOrWalkIdx + preFightAdvances)) {
+						if (this.jumpsAt(x.afterDashIdx + preFightAdvances + postDashAdvances)) {
 							jumpChance += x.chance;
 						} else {
 							glideChance += x.chance;
@@ -173,8 +201,8 @@ const HeavyLobster = {
 				let jumpChance = 0;
 				let glideChance = 0;
 				for (const x of candidates) {
-					if (this.isWalk(x.dashOrWalkIdx + preFightAdvances)) {
-						if (this.isJump(x.afterWalkIdx + preFightAdvances + postWalkAdvances)) {
+					if (this.walksAt(x.dashOrWalkIdx + preFightAdvances)) {
+						if (this.jumpsAt(x.afterWalkIdx + preFightAdvances + postWalkAdvances)) {
 							jumpChance += x.chance;
 						} else {
 							glideChance += x.chance;
@@ -205,79 +233,87 @@ const HeavyLobster = {
 		}
 
 		return preFight;
-	}
+	},
 }
 
-//格闘王への道
-const Arena = {
-	//ボス順の初期配列を生成しシャッフル
-	_buildOrder(idx, timer, timerMask, shuffleLen, totalLen) {
-		const offset = timer & timerMask;
-		const bossOrder = Uint8Array.from({length:totalLen}, (_, i)=>
-			i < shuffleLen
-			? (offset + i) % shuffleLen	//シャッフル対象を回転させて初期化
-			: i	//固定ボスを末尾に配置
-		);
-		//シャッフル
-		for (let i = 0; i < shuffleLen; i++) {
-			const r = randiAt(++idx, shuffleLen);
-			[bossOrder[i], bossOrder[r]] = [bossOrder[r], bossOrder[i]];
-		}
-		return bossOrder;
-	},
-
-	//通常の格闘王への道
-	arenaBosses: [
-		"ワドルディ", "中ボス2", "中ボス1", "バトルウィンドウズ",
-		"2連主砲", "魔人ワムバムロック", "デデデ大王", "ダイナブレイド",
-		"ファッティホエール", "ガメレオアーム", "ヘビーロブスター", "クラッコ",
-		"ロロロ&ラララ", "メタナイト", "ギャラクティック・ノヴァ", "リアクター",
-		"ツインウッズ", "ウィスピーウッズ",
-		"マルク",	//固定
-	],
-	arenaBossOrder(idx, timer) {
-		return this._buildOrder(idx, timer, 0xF, 18, 19);
-	},
-
-	//真・格闘王への道
-	trueArenaBosses: [
-		"中ボス", "カブーラー", "クラッコJr.リベンジ",
-		"クラッコリベンジ", "ロロロ&ラララリベンジ", "ウイスピーウッズリベンジ",
-		"マスクドデデデ", "ワムバムジュエル", "ギャラクティックナイト", "マルクソウル",	//固定
-	],
-	trueArenaBossOrder(idx, timer) {
-		return this._buildOrder(idx, timer, 0x3, 6, 10);
-	},
-
-	//モード別設定
-	_config(isTrueArena) {
-		return isTrueArena
-			? { bosses: this.trueArenaBosses, orderFn: (i, t) => this.trueArenaBossOrder(i, t), shuffleLen: 6, timerMax: 3 }
-			: { bosses: this.arenaBosses, orderFn: (i, t) => this.arenaBossOrder(i, t), shuffleLen: 18, timerMax: 15 };
-	},
-
-	/**
-	 * 一戦目のボスと乱数候補からボス順を予測
-	 * @param {number[]} candidates コルクボード検索から得た乱数位置の配列
-	 * @param {number} firstBoss 一戦目のボスのインデックス
-	 * @param {boolean} isTrueArena 真・格闘王への道かどうか
-	 */
-	predict(candidates, firstBoss, isTrueArena) {
-		const { orderFn, shuffleLen, timerMax } = this._config(isTrueArena);
-
-		const results = [];
-		for (const idx of candidates) {
-			//コルクボード結果の次の乱数位置からシャッフルが始まる
-			const order0 = orderFn(idx, 0);
-			//timer=0での一戦目との差からtimerを逆算
-			const timer = (firstBoss - order0[0] + shuffleLen) % shuffleLen;
-			if (timer > timerMax) continue;
-			//timerオフセットを適用して実際のボス順を計算
-			const order = Array.from(order0, (b, i) => i < shuffleLen ? (b + timer) % shuffleLen : b);
-			results.push({ idx, timer, order });
-		}
-		return results;
+/** ボスの並び順 */
+function bossOrder(idx, timer, timerMask, length){
+	timer &= timerMask;
+	const order = Uint8Array.from({length}, (_, i) => (timer + i) % length);
+	for(let i = 0; i < length; i++){
+		const r = randiAt(++idx, length);
+		[order[i], order[r]] = [order[r], order[i]];
 	}
+	return order;
 }
-
-export { Star, Corkboard, HeavyLobster, FattyWhale, Arena, initialSeed, rngAt, randi, randiAt, rngIdxOf };
+/** ボスの並び順を予測 */
+function searchBossOrder(candidates, firstBoss, timerMask, length){
+	const rslt = [];
+	for(const idx of candidates){
+		//timer=0での一戦目との差からtimerを逆算
+		const order = bossOrder(idx, 0, 0, length);
+		const timer = (firstBoss - order[0] + length) % length;
+		if(timer > timerMask) continue;
+		rslt.push(bossOrder(idx, timer, timerMask, length));
+	}
+	return rslt;
+}
+/** 格闘王への道 */
+export const Arena = {
+	//ボス名
+	NAMES: [
+		"ワドルディ",
+		"中ボスオールスターズ2",
+		"中ボスオールスターズ1",
+		"バトルウィンドウズ",
+		"2連主砲",
+		"魔人ワムバムロック",
+		"デデデ大王",
+		"ダイナブレイド",
+		"ファッティホエール",
+		"ガメレオアーム",
+		"ヘビーロブスター",
+		"クラッコ",
+		"ロロロ&ラララ",
+		"メタナイト",
+		"ギャラクティック・ノヴァ",
+		"リアクター",
+		"ツインウッズ",
+		"ウィスピーウッズ",
+		"マルク",
+	],
+	//ボスの並び順
+	SHUFFLE_LEN: 18,
+	TIMER_MASK: 0xF,
+	bossOrder(idx, timer){
+		return bossOrder(idx, timer, this.TIMER_MASK, this.SHUFFLE_LEN);
+	},
+	searchBossOrder(candidates, timer){
+		return searchBossOrder(candidates, timer, this.TIMER_MASK, this.SHUFFLE_LEN);
+	},
+}
+/** 真・格闘王への道 */
+export const TrueArena = {
+	//ボス名
+	NAMES: [
+		"真・中ボスオールスターズ",
+		"飛行砲台カブーラー",
+		"クラッコJr.リベンジ",
+		"クラッコリベンジ",
+		"ロロロ&ラララリベンジ",
+		"ウイスピーウッズリベンジ",
+		"マスクドデデデ",
+		"ワムバムジュエル",
+		"ギャラクティックナイト",
+		"マルクソウル",
+	],
+	//ボスの並び順
+	SHUFFLE_LEN: 6,
+	TIMER_MASK: 0x3,
+	bossOrder(idx, timer){
+		return bossOrder(idx, timer, this.TIMER_MASK, this.SHUFFLE_LEN);
+	},
+	searchBossOrder(candidates, firstBoss){
+		return searchBossOrder(candidates, firstBoss, this.TIMER_MASK, this.SHUFFLE_LEN);
+	},
+}
