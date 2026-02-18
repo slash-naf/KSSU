@@ -47,7 +47,7 @@ export const Star = {
 	},
 }
 
-/** コルクボードの曲から乱数を予測 */
+/** コルクボードの曲の乱数 */
 export const Corkboard = {
 	NAMES: ['裏コルクボード', 'コルクボード'],
 	at(i){
@@ -62,7 +62,7 @@ export const Corkboard = {
 		const rslt = [];
 		for(let i = 0; i < CYCLE_LEN; i++){
 			if(pattern.every((x, advances) => -1 === x || this.at(i + advances * 2) === x)){	//タイトル画面とコルクボードの往復で乱数が2進む
-				rslt.push({i: i - 2, current: i - 2 + pattern.length * 2});
+				rslt.push({idx: i - 2, current: i - 2 + pattern.length * 2});
 			}
 		}
 		return rslt;
@@ -95,11 +95,11 @@ export const HeavyLobster = {
 	},
 
 	/**
-	 * 星の向きから乱数を推測
+	 * 星の向きから乱数を予測し、乱数を進める量を計算
 	 * @param {Array} pattern 0～7:星の向き, -1:ワイルドカード
 	 * @param {Array} additions 各タイミングでの乱数の想定とのズレの配列
 	 */
-	search(pattern, additions = [], { preFightAdvancesMax, postDashAdvancesMax, postWalkAdvancesMax, } = {}, start = 0, len = CYCLE_LEN){
+	solve(pattern, additions = [], { preFightAdvancesMax, postDashAdvancesMax, postWalkAdvancesMax, } = {}, start = 0, len = CYCLE_LEN){
 		//0～4:星の向き、5:走るか、6:走った後、7:歩いた後
 		/*
 			乱数タイマーごとの乱数位置のパターン
@@ -247,14 +247,15 @@ function bossOrder(idx, timer, timerMask, length){
 	return order;
 }
 /** ボスの並び順を予測 */
-function searchBossOrder(candidates, firstBoss, timerMask, length){
+function predictBossOrder(candidates, firstBoss, timerMask, length){
 	const rslt = [];
 	for(const idx of candidates){
 		//timer=0での一戦目との差からtimerを逆算
 		const order = bossOrder(idx, 0, 0, length);
 		const timer = (firstBoss - order[0] + length) % length;
 		if(timer > timerMask) continue;
-		rslt.push(bossOrder(idx, timer, timerMask, length));
+		order.forEach((v, i) => order[i] = (v + timer) % length);
+		rslt.push({idx, order});
 	}
 	return rslt;
 }
@@ -288,8 +289,8 @@ export const Arena = {
 	bossOrder(idx, timer){
 		return bossOrder(idx, timer, this.TIMER_MASK, this.SHUFFLE_LEN);
 	},
-	searchBossOrder(candidates, timer){
-		return searchBossOrder(candidates, timer, this.TIMER_MASK, this.SHUFFLE_LEN);
+	predictBossOrder(candidates, timer){
+		return predictBossOrder(candidates, timer, this.TIMER_MASK, this.SHUFFLE_LEN);
 	},
 }
 /** 真・格闘王への道 */
@@ -313,7 +314,7 @@ export const TrueArena = {
 	bossOrder(idx, timer){
 		return bossOrder(idx, timer, this.TIMER_MASK, this.SHUFFLE_LEN);
 	},
-	searchBossOrder(candidates, firstBoss){
-		return searchBossOrder(candidates, firstBoss, this.TIMER_MASK, this.SHUFFLE_LEN);
+	predictBossOrder(candidates, firstBoss){
+		return predictBossOrder(candidates, firstBoss, this.TIMER_MASK, this.SHUFFLE_LEN);
 	},
 }

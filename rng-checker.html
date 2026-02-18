@@ -108,13 +108,13 @@
 				}
 
 				//可能性のある乱数を検索
-				let rslt = Corkboard.search(pattern);
-				corkboardResults = rslt.map(r => r.current);
+				let results = Corkboard.search(pattern);
+				corkboardResults = results.map(r => r.current);
 				updateArena();
 
 				//出力
-				output.textContent = ["count=" + rslt.length, ...rslt.map(r =>
-					'[' + r.i + ']=' + rngAt(r.i) + '..[' + r.current + ']=' + rngAt(r.current)
+				output.textContent = [`候補数:${results.length}`, ...results.map(r =>
+					`[${r.idx}]:${rngAt(r.idx)}..[${r.current}]:${rngAt(r.current)}`
 				)].join(', ');
 			};
 			input.oninput = e => e.isComposing || update();
@@ -167,21 +167,12 @@
 				}
 
 				const arena = getArena();
-				const results = arena.searchBossOrder(corkboardResults, firstBoss);
+				const results = arena.predictBossOrder(corkboardResults, firstBoss);
 
-				if (results.length === 0) {
-					output.textContent = '該当なし';
-					return;
-				}
-
-				//重複するオーダーを除去
-				const unique = [...new Map(results.map(r => [r.join(), r])).values()];
-
-				output.style.whiteSpace = 'pre-line';
-				output.textContent = 'パターン数: ' + unique.length + '\n' +
-					unique.map(order =>
-						Array.from(order, b => arena.NAMES[b]).join(' → ')
-					).join('\n');
+				//出力
+				output.textContent = [`候補数:${results.length}`, ...results.map(r =>
+					`[${r.idx}]:${Array.from(r.order, b => arena.NAMES[b]).join(' → ')}`
+				)].join(', ');
 			};
 
 			//モード切り替え
@@ -265,7 +256,7 @@
 				}
 
 				// 乱数をいくつ進めるか計算
-				let result = HeavyLobster.search(pattern, additions, init());
+				let result = HeavyLobster.solve(pattern, additions, init());
 
 				// 結果を出力
 				preFightAdvances.textContent = result.advances;
